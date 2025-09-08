@@ -1,0 +1,80 @@
+/* page.module.css */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f5f5f5, #e0e0e0); /* ขาว–เทา */
+  color: #222; /* dark text for contrast */
+  font-family: 'Inter', sans-serif; /* Minimal modern font */
+}
+
+.loginBox {
+  background-color: #ffffff; /* ขาว */
+  padding: 40px 30px;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.1); /* subtle shadow */
+  width: 100%;
+  max-width: 400px;
+}
+
+.title {
+  text-align: center;
+  margin-bottom: 25px;
+  font-size: 2rem;
+  color: #333; /* dark gray */
+  font-weight: 600;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.inputField {
+  padding: 12px 15px;
+  border-radius: 8px;
+  border: 1px solid #bbb; /* subtle gray border */
+  outline: none;
+  font-size: 1rem;
+  color: #222;
+  background-color: #f9f9f9; /* very light gray */
+}
+
+.inputField:focus {
+  border: 1px solid #555; /* darker gray on focus */
+  background-color: #fff;
+}
+
+.submitButton {
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  background-color: #555; /* dark gray */
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.submitButton:hover {
+  background-color: #333;
+}
+
+.registerLink {
+  margin-top: 15px;
+  text-align: center;
+}
+
+.registerLink a {
+  color: #555;
+  text-decoration: underline;
+  font-weight: 500;
+}
+
+.registerLink a:hover {
+  color: #222;
+}
