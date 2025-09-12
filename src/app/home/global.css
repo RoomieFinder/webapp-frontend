@@ -1,0 +1,12 @@
+@import "tailwindcss";
+
+:root {
+  --background: #1D2D44;
+    --foreground: #D9E2EC;
+    --geist-sans: 'Geist Sans', sans-serif;
+    --geist-mono: 'Geist Mono', monospace;
+    --font-geist-sans: 'Geist Sans', sans-serif;
+    --font-geist-mono: 'Geist Mono', monospace;
+    --font-petit-formal: 'Petit Formal Script', cursive;
+    --font-petit-formal: 'Petit Formal Script', cursive;
+}
