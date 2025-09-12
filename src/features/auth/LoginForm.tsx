@@ -1,14 +1,59 @@
 "use client";
 import { useState } from "react";
 import Button from "@/components/ui/Button";
-import Image from "next/image";
+import PasswordInput from "@/components/ui/PasswordInput";
 
-export default function LoginPanel({ onClose, onSwitchToRegister }: { onClose: () => void, onSwitchToRegister: () => void }) {
+export default function LoginPanel({
+  onClose,
+  onSwitchToRegister,
+}: {
+  onClose: () => void;
+  onSwitchToRegister: () => void;
+}) {
+  // state input
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  // state error
+  const [emailError, setEmailError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+
+  // validation function
+  const validateEmail = (value: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!value) return "Email is required";
+    if (!emailRegex.test(value)) return "Please enter a valid email";
+    return "";
+  };
+
+  const validatePassword = (value: string) => {
+    if (!value) return "Password is required";
+    if (value.length < 6) return "Password must be at least 6 characters";
+    return "";
+  };
+
+  // blur handler
+  const handleBlurEmail = () => setEmailError(validateEmail(email));
+  const handleBlurPassword = () => setPasswordError(validatePassword(password));
+
+  // submit handler
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const emailErr = validateEmail(email);
+    const passwordErr = validatePassword(password);
+
+    setEmailError(emailErr);
+    setPasswordError(passwordErr);
+
+    if (emailErr || passwordErr) return; // ถ้ามี error ไม่ยิง API
+
+    // ยิง API ได้เลย
+    console.log("Call API with:", { email, password });
+  };
+
   return (
     <div className="fixed inset-0 flex">
-      {/* Left side background */}
-
-      {/* Right side Panel */}
       <div className="w-1/2 bg-white flex flex-col p-8 relative shadow-lg">
         <button
           className="absolute top-4 left-4 text-gray-500 hover:text-gray-800 hover:bg-gray-200 rounded-full w-10 h-10 flex items-center justify-center transition cursor-pointer"
@@ -22,27 +67,60 @@ export default function LoginPanel({ onClose, onSwitchToRegister }: { onClose: (
 
           <p className="text-sm text-gray-600 mb-6">
             Don't have an account? <br />
-            <button onClick={onSwitchToRegister} className="text-blue-600 underline cursor-pointer">
+            <button
+              onClick={onSwitchToRegister}
+              className="text-blue-600 underline cursor-pointer"
+            >
               Sign up here
             </button>
           </p>
 
-          <div className="flex flex-col gap-4">
+          <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
+            {/* Email */}
             <div className="flex flex-col gap-1">
-              <label htmlFor="email" className="font-semibold text-gray-700">Email</label>
-              <input id="email" className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-black" />
+              <label htmlFor="email" className="font-semibold text-gray-700">
+                Email address
+              </label>
+              <input
+                id="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                onBlur={handleBlurEmail}
+                className={`w-full p-2 border rounded focus:outline-none focus:ring-2 ${
+                  emailError
+                    ? "border-red-500 focus:ring-red-500"
+                    : "border-gray-300 focus:ring-blue-500"
+                } text-black`}
+              />
+              {emailError && (
+                <p className="text-xs text-red-500">{emailError}</p>
+              )}
             </div>
 
+            {/* Password */}
             <div className="flex flex-col gap-1">
-              <label htmlFor="password" className="font-semibold text-gray-700">Password</label>
-              <input id="password" type="password" className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-black" />
-              <p className="text-xs text-gray-400 mt-auto cursor-pointer">Forgot password?</p>
+              <label htmlFor="password" className="font-semibold text-gray-700">
+                Password
+              </label>
+              <PasswordInput
+                value={password}
+                onChange={setPassword}
+                onBlur={handleBlurPassword}
+                error={passwordError}
+              />
+              <button
+                type="button"
+                className="text-xs text-gray-400 mt-auto cursor-pointer w-fit hover:underline focus:outline-none"
+              >
+                Forgot password?
+              </button>
             </div>
-            
-        
-            <Button className="w-full cursor-pointer mt-2">Login</Button>
-          </div>
 
+            {/* Submit */}
+            <Button type="submit" className="w-full cursor-pointer mt-2">
+              Login
+            </Button>
+          </form>
         </div>
       </div>
     </div>
