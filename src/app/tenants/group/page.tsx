@@ -47,16 +47,6 @@ export default function CreateGroup() {
 
     return (
         <div className="flex h-screen w-full">
-            {/* Sidebar */}
-            <div className="w-16 border-r border-gray-200 flex flex-col items-center py-4 space-y-6 bg-white">
-                <button className="p-2">≡</button>
-                <button className="p-2">🏠</button>
-                <button className="p-2">👤</button>
-                <button className="p-2">🔍</button>
-                <button className="p-2">👥</button>
-                <button className="p-2">💲</button>
-            </div>
-
             {/* Main Content */}
             <div className="flex-1 bg-[#192A46] flex flex-col">
                 {/* Header */}
