@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import TopBar from "@/components/ui/TopBar";
 
 export default function CreateGroup() {
     const [groupName, setGroupName] = useState("");
@@ -47,12 +48,10 @@ export default function CreateGroup() {
 
     return (
         <div className="flex h-screen w-full">
+
             {/* Main Content */}
             <div className="flex-1 bg-[#192A46] flex flex-col">
-                {/* Header */}
-                <div className="bg-white p-3">
-                    <h1 className="text-xl font-mono">‹ Create a Group</h1>
-                </div>
+
 
                 {/* Form */}
                 <div className="flex flex-col flex-1 items-center justify-center">
@@ -105,10 +104,12 @@ export default function CreateGroup() {
                             />
                         </div>
 
+                        {/* Create Group button */}
                         <button
                             type="submit"
                             disabled={loading}
-                            className="mt-4 bg-[#E6DFC9] text-black px-10 py-3 rounded-md shadow font-mono font-extrabold"
+                            className="mt-4 bg-[#E6DFC9] text-black px-10 py-3 rounded-md shadow font-mono font-extrabold
+                                       hover:bg-[#d4c6aa] hover:scale-105 hover:shadow-lg transition-all duration-200"
                         >
                             {loading ? "Creating..." : "Create Group"}
                         </button>
