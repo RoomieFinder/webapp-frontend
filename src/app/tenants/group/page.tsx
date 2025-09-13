@@ -58,48 +58,57 @@ export default function CreateGroup() {
                 <div className="flex flex-col flex-1 items-center justify-center">
                     <div className="mb-6">
                         <Image
-                            src="/sunset.jpg" // replace with your image path
+                            src="/sunset.svg" // replace with your image path
                             alt="Group Avatar"
-                            width={120}
-                            height={120}
+                            width={269}
+                            height={269}
                             className="rounded-full border-4 border-white shadow-md"
                         />
                     </div>
 
                     <form
                         onSubmit={handleSubmit}
-                        className="flex flex-col items-center space-y-4 w-full max-w-md"
+                        className="flex flex-col items-center space-y-4 w-full max-w-3xl"
                     >
-                        <input
-                            type="text"
-                            placeholder="Group’s name"
-                            value={groupName}
-                            onChange={(e) => setGroupName(e.target.value)}
-                            required
-                            className="w-full rounded-md p-2 font-mono"
-                        />
+                        {/* Group’s name */}
+                        <div className="w-full">
+                            <label className="block text-white font-mono mb-1">Group’s name</label>
+                            <input
+                                type="text"
+                                value={groupName}
+                                onChange={(e) => setGroupName(e.target.value)}
+                                required
+                                className="w-full rounded-md p-2 font-mono bg-white text-black"
+                            />
+                        </div>
 
-                        <input
-                            type="text"
-                            placeholder="Looking to stay at (property_id)"
-                            value={stayLocation}
-                            onChange={(e) => setStayLocation(e.target.value)}
-                            required
-                            className="w-full rounded-md p-2 font-mono"
-                        />
+                        {/* Looking to stay at */}
+                        <div className="w-full">
+                            <label className="block text-white font-mono mb-1">Looking to stay at</label>
+                            <input
+                                type="text"
+                                value={stayLocation}
+                                onChange={(e) => setStayLocation(e.target.value)}
+                                required
+                                className="w-full rounded-md p-2 font-mono bg-white text-black"
+                            />
+                        </div>
 
-                        <textarea
-                            placeholder="Description"
-                            value={description}
-                            onChange={(e) => setDescription(e.target.value)}
-                            className="w-full rounded-md p-2 font-mono"
-                            rows={3}
-                        />
+                        {/* Description */}
+                        <div className="w-full">
+                            <label className="block text-white font-mono mb-1">Description</label>
+                            <textarea
+                                value={description}
+                                onChange={(e) => setDescription(e.target.value)}
+                                className="w-full rounded-md p-2 font-mono bg-white text-black"
+                                rows={2}
+                            />
+                        </div>
 
                         <button
                             type="submit"
                             disabled={loading}
-                            className="mt-4 bg-[#E6DFC9] text-black px-6 py-2 rounded-md shadow font-mono"
+                            className="mt-4 bg-[#E6DFC9] text-black px-10 py-3 rounded-md shadow font-mono font-extrabold"
                         >
                             {loading ? "Creating..." : "Create Group"}
                         </button>
