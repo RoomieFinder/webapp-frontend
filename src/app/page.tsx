@@ -38,7 +38,7 @@ export default function HomePage() {
       <Panel isOpen={panelOpen} onClose={() => setPanelOpen(false)}>
         {showRegister ? (
           <RegisterForm
-            onSwitchToLogin={() => setShowLogin(true)} 
+            onSwitchToLogin={() => setShowRegister(false)} 
             onClose={() => setPanelOpen(false)} 
           />
         ) : (
