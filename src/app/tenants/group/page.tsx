@@ -48,10 +48,13 @@ export default function CreateGroup() {
 
     return (
         <div className="flex h-screen w-full">
-
             {/* Main Content */}
             <div className="flex-1 bg-[#192A46] flex flex-col">
 
+                {/* TopBar */}
+                <div className="w-full px-4">
+                    <TopBar pageName="Create a Group" />
+                </div>
 
                 {/* Form */}
                 <div className="flex flex-col flex-1 items-center justify-center">
@@ -108,7 +111,7 @@ export default function CreateGroup() {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="mt-4 bg-[#E6DFC9] text-black px-10 py-3 rounded-md shadow font-mono font-extrabold
+                            className="mt-10 bg-[#E6DFC9] text-black px-10 py-3 rounded-md shadow font-mono font-extrabold
                                        hover:bg-[#d4c6aa] hover:scale-105 hover:shadow-lg transition-all duration-200"
                         >
                             {loading ? "Creating..." : "Create Group"}
