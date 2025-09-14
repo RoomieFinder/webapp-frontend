@@ -7,12 +7,12 @@ import { useRouter } from "next/navigation";
 export default function SelectRolePage() {
     const [selectedRole, setSelectedRole] = useState<string | null>(null);
     const router = useRouter();
-    
+
     const handleContinue = () => {
         if (selectedRole === "tenant") {
-            router.push("/tenants");
+            router.push("/tenants/profile");
         } else if (selectedRole === "landlord") {
-            router.push("/landlords");
+            router.push("/landlords/booking");
         }
     };
 
