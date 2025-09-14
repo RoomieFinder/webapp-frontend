@@ -38,9 +38,10 @@ export default function CreatePost() {
 
   // Handle file select
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      setPhotos((prev) => [...prev, ...Array.from(e.target.files)].slice(0, 5));
-    }
+    const files = e.target.files;
+    if (!files) return;
+
+    setPhotos((prev) => [...prev, ...Array.from(files)].slice(0, 5));
   };
 
   // Handle drag & drop
@@ -69,18 +70,28 @@ export default function CreatePost() {
     try {
       const token = localStorage.getItem("token");
 
-      const res = await fetch("https://your-api-url.com/property", {
+      // ✅ build FormData
+      const formDataToSend = new FormData();
+      formDataToSend.append("placeName", formData.placeName);
+      formDataToSend.append("caption", formData.caption);
+      formDataToSend.append("type", formData.type);
+      formDataToSend.append("address", formData.address);
+      formDataToSend.append("price", formData.price);
+      formDataToSend.append("capacity", formData.capacity);
+      formDataToSend.append("roomSize", formData.roomSize);
+      formDataToSend.append("description", formData.description);
+
+      // ✅ backend expects "pictures"
+      photos.forEach((file) => {
+        formDataToSend.append("pictures", file);
+      });
+
+      const res = await fetch("http://localhost:8080/property", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${token}`, // don’t set Content-Type, browser does it
         },
-        body: JSON.stringify({
-          ...formData,
-          price: parseFloat(formData.price),
-          capacity: parseInt(formData.capacity),
-          roomSize: parseInt(formData.roomSize),
-        }),
+        body: formDataToSend,
       });
 
       const data = await res.json();
@@ -99,7 +110,7 @@ export default function CreatePost() {
         });
         setPhotos([]);
       } else {
-        setMessage(`❌ ${data.message}`);
+        setMessage(`❌ ${data.error || "Failed to create property"}`);
       }
     } catch (err) {
       setMessage("❌ Something went wrong. Please try again.");
