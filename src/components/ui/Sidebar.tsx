@@ -104,15 +104,17 @@ const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' 
   }),
 );
 
-const navItems = [
-  { text: "Explore", path: "/home/explore" },
-  { text: "Profile", path: "/home/profile" },
-  { text: "Find Roommate", path: "/home/find-roommate" },
-  { text: "Create Party", path: "/home/create-party" },
-  { text: "Payment", path: "/home/payment" },
-];
+interface NavItem {
+  text: string;
+  path: string;
+  icon?: React.ReactNode;
+}
 
-export default function MiniDrawer() {
+interface MiniDrawerProps {
+  navItems: NavItem[];
+}
+
+export default function MiniDrawer({ navItems }: MiniDrawerProps) {
   const theme = useTheme();
   const [open, setOpen] = React.useState(false);
 
@@ -127,32 +129,38 @@ export default function MiniDrawer() {
   return (
     <Box sx={{ display: 'flex' }}>
       <CssBaseline />
-      <AppBar position="fixed" open={open}>
-        <Toolbar>
-          <IconButton
-            color="inherit"
-            aria-label="open drawer"
-            onClick={handleDrawerOpen}
-            edge="start"
-            sx={[
-              {
-                marginRight: 5,
-              },
-              open && { display: 'none' },
-            ]}
-          >
-            <MenuIcon />
-          </IconButton>
-          <Typography variant="h6" noWrap component="div">
-            Mini variant drawer
-          </Typography>
-        </Toolbar>
-      </AppBar>
-      <Drawer variant="permanent" open={open}>
+      {/* When sidebar is open, set pointer-events: auto for sidebar, none for rest */}
+      <Box
+        sx={{
+          width: '100%',
+          pointerEvents: open ? 'none' : 'auto',
+        }}
+      >
+        {/* This Box wraps your main content in layout.tsx */}
+      </Box>
+      <Drawer
+        variant="permanent"
+        open={open}
+        sx={{
+          zIndex: 1300, // Make sure sidebar is above overlay
+          pointerEvents: 'auto',
+        }}
+      >
         <DrawerHeader>
-          <IconButton onClick={handleDrawerClose}>
-            {theme.direction === 'rtl' ? <ChevronRightIcon /> : <ChevronLeftIcon />}
-          </IconButton>
+          {open ? (
+            <IconButton onClick={handleDrawerClose}>
+              {theme.direction === 'rtl' ? <ChevronRightIcon /> : <ChevronLeftIcon />}
+            </IconButton>
+          ) : (
+            <IconButton
+              color="inherit"
+              aria-label="open drawer"
+              onClick={handleDrawerOpen}
+              edge="start"
+            >
+              <MenuIcon />
+            </IconButton>
+          )}
         </DrawerHeader>
         <Divider />
         <List>
@@ -174,7 +182,7 @@ export default function MiniDrawer() {
                       open ? { mr: 3 } : { mr: 'auto' },
                     ]}
                   >
-                    {index % 2 === 0 ? <InboxIcon /> : <MailIcon />}
+                    {item.icon ?? (index % 2 === 0 ? <InboxIcon /> : <MailIcon />)}
                   </ListItemIcon>
                   <ListItemText
                     primary={item.text}
@@ -188,6 +196,21 @@ export default function MiniDrawer() {
           ))}
         </List>
       </Drawer>
+      {open && (
+        <Box
+          onClick={handleDrawerClose}
+          sx={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            bgcolor: 'rgba(0,0,0,0.2)',
+            zIndex: 1200,
+            pointerEvents: 'auto',
+          }}
+        />
+      )}
     </Box>
   );
 }

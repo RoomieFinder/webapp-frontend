@@ -1,9 +1,13 @@
 "use client";
+import React, { useState } from "react";
+import TopBar from "@/components/ui/TopBar";
+import EditProfile from "@/features/EditProfile";
+
 export default function ProfilePage() {
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen py-2">
-      <h1 className="text-4xl font-bold mb-4">Profile Page</h1>
-      <p className="text-lg">This is where user profile information will be displayed.</p>
+    <div className="h-screen w-full bg-[#1D2D44] overflow-hidden flex flex-col">
+      <TopBar pageName="Edit Profile" />
+      <EditProfile/>
     </div>
   );
 }
