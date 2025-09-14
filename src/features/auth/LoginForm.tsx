@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { useRouter } from "next/navigation"; // App Router
 import Button from "@/components/ui/Button";
 import PasswordInput from "@/components/ui/PasswordInput";
 
@@ -10,6 +11,8 @@ export default function LoginPanel({
   onClose: () => void;
   onSwitchToRegister: () => void;
 }) {
+  const router = useRouter();
+
   // state input
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -17,6 +20,7 @@ export default function LoginPanel({
   // state error
   const [emailError, setEmailError] = useState("");
   const [passwordError, setPasswordError] = useState("");
+  const [message, setMessage] = useState("");
 
   // validation function
   const validateEmail = (value: string) => {
@@ -37,7 +41,7 @@ export default function LoginPanel({
   const handleBlurPassword = () => setPasswordError(validatePassword(password));
 
   // submit handler
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     const emailErr = validateEmail(email);
@@ -46,10 +50,28 @@ export default function LoginPanel({
     setEmailError(emailErr);
     setPasswordError(passwordErr);
 
-    if (emailErr || passwordErr) return; // ถ้ามี error ไม่ยิง API
+    if (emailErr || passwordErr) return;
 
-    // ยิง API ได้เลย
-    console.log("Call API with:", { email, password });
+    try {
+      const res = await fetch("http://localhost:8080/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await res.json();
+      console.log(data);
+
+      if (res.ok && data.ID) {
+        setMessage("Login success");
+        router.push("/role")
+      } else {
+        setMessage("Login failed: " + (data.message || ""));
+      }
+    } catch (err) {
+      console.error(err);
+      setMessage("Error connecting to server");
+    }
   };
 
   return (
@@ -66,7 +88,7 @@ export default function LoginPanel({
           <h2 className="text-8xl mt-12 text-gray-900">Login</h2>
 
           <p className="text-sm text-gray-600 mb-6">
-            Don't have an account? <br />
+            Don't have an account?{" "}
             <button
               onClick={onSwitchToRegister}
               className="text-blue-600 underline cursor-pointer"
@@ -120,6 +142,17 @@ export default function LoginPanel({
             <Button type="submit" className="w-full cursor-pointer mt-2">
               Login
             </Button>
+
+            {/* Message */}
+            {message && (
+              <p
+                className={`text-sm text-center ${
+                  message === "Login success" ? "text-green-500" : "text-red-500"
+                }`}
+              >
+                {message}
+              </p>
+            )}
           </form>
         </div>
       </div>

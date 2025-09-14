@@ -2,9 +2,19 @@
 
 import Image from "next/image";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function SelectRolePage() {
     const [selectedRole, setSelectedRole] = useState<string | null>(null);
+    const router = useRouter();
+
+    const handleContinue = () => {
+        if (selectedRole === "tenant") {
+            router.push("/tenants/profile");
+        } else if (selectedRole === "landlord") {
+            router.push("/landlords/booking");
+        }
+    };
 
     return (
         <div
@@ -72,6 +82,7 @@ export default function SelectRolePage() {
             <div className="absolute right-[100px] top-[85%]">
                 <button
                     disabled={!selectedRole}
+                    onClick={handleContinue}
                     className={`group flex items-center font-jetbrains text-white text-[28px] border-2 border-white rounded-lg overflow-hidden
                         transition-transform duration-300 group-hover:border-black
                     ${selectedRole
