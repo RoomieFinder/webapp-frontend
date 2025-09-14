@@ -17,15 +17,16 @@ export default function CreateGroup() {
         setMessage("");
 
         try {
-            const res = await fetch("/group", {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/groups`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
+                    Authorization: `Bearer ${localStorage.getItem("token")}`, // required if backend needs JWT
                 },
                 body: JSON.stringify({
-                    group_name: groupName,
-                    description: description,
-                    property_id: stayLocation, // backend requires string
+                    groupName,         // ✅ camelCase
+                    description,
+                    propertyId: Number(stayLocation), // backend expects uint
                 }),
             });
 
