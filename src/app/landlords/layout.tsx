@@ -17,13 +17,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   ];
 
   return (
-    <html lang="en">
-      <body>
-        <MiniDrawer navItems={navItems} />
-        <main className="flex-1 bg-[#1D2D44] text-[var(--foreground)]">
-          {children}
-        </main>
-      </body>
-    </html>
+    <div className="flex-1 bg-[#1D2D44] text-[var(--foreground)]">
+      <MiniDrawer navItems={navItems} />
+      <main className="flex-1">
+        {children}
+      </main>
+    </div>
   );
 }
