@@ -13,14 +13,14 @@ const TopBar: React.FC<TopBarProps> = ({ pageName, onBack }) => (
                 display: 'flex',
             justifyContent: 'center',
             alignItems: 'center',
-            padding: '10px 0 0 80px', // top padding for spacing, left for sidebar
+            // padding: '10px 15px 0 80px', // top padding for spacing, left for sidebar
             background: 'transparent',
         }}
     >
         <div
             style={{
                 width: '100%',
-                maxWidth: '1500px',
+                maxWidth: '100%',
                 display: 'flex',
                 alignItems: 'center',
                 background: '#fff',
@@ -30,6 +30,7 @@ const TopBar: React.FC<TopBarProps> = ({ pageName, onBack }) => (
                 fontFamily: 'monospace, "Geist Mono", "Menlo", "Consolas", "Courier", monospace',
                 fontSize: 32,
                 fontWeight: 600,
+                margin: '10px 15px 0 80px'
             }}
         >
             <button
