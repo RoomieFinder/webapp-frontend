@@ -17,19 +17,29 @@ export default function CreateGroup() {
         setMessage("");
 
         try {
-            const res = await fetch("/group", {
+            const url = "http://localhost:8080/group"; 
+            const body = {
+                group_name: groupName,
+                description: description,
+                //property_id: Number(stayLocation),
+            };
+
+            console.log("Sending POST request to:", url);
+            console.log("Request body:", body);
+
+            const res = await fetch(url, {
                 method: "POST",
+                credentials: "include",
                 headers: {
                     "Content-Type": "application/json",
                 },
-                body: JSON.stringify({
-                    group_name: groupName,
-                    description: description,
-                    property_id: stayLocation, // backend requires string
-                }),
+                body: JSON.stringify(body),
             });
 
+            console.log("Response status:", res.status);
+
             const data = await res.json();
+            console.log("Response data:", data);
 
             if (res.ok) {
                 setMessage("✅ Group created successfully!");
@@ -40,6 +50,7 @@ export default function CreateGroup() {
                 setMessage(`❌ ${data.message || "Failed to create group"}`);
             }
         } catch (error) {
+            console.error("Network error:", error);
             setMessage("⚠️ Network error. Please try again.");
         } finally {
             setLoading(false);
@@ -47,9 +58,9 @@ export default function CreateGroup() {
     };
 
     return (
-        <div className="flex h-screen w-full">
+        <div className="min-h-screen w-full">
             {/* Main Content */}
-            <div className="flex-1 bg-[#192A46] flex flex-col">
+            <div className="bg-[#192A46] flex flex-col">
 
                 {/* TopBar */}
                 <div className="w-full px-4">
@@ -57,7 +68,7 @@ export default function CreateGroup() {
                 </div>
 
                 {/* Form */}
-                <div className="flex flex-col flex-1 items-center justify-center">
+                <div className="flex flex-col items-center justify-start py-10">
                     <div className="mb-6">
                         <Image
                             src="/sunset.svg" // replace with your image path
