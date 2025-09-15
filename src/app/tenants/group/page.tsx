@@ -17,14 +17,7 @@ export default function CreateGroup() {
         setMessage("");
 
         try {
-            const token = localStorage.getItem("token");
-            if (!token) {
-                setMessage("⚠️ No token found. Please login first.");
-                setLoading(false);
-                return;
-            }
-
-            const url = `${process.env.NEXT_PUBLIC_API_URL}/groups/`; // match backend route
+            const url = `${process.env.NEXT_PUBLIC_API_URL}/groups/`; // backend route
             const body = {
                 group_name: groupName,
                 description: description,
@@ -36,9 +29,9 @@ export default function CreateGroup() {
 
             const res = await fetch(url, {
                 method: "POST",
+                credentials: "include", // ✅ important for cookie auth
                 headers: {
                     "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
                 },
                 body: JSON.stringify(body),
             });
