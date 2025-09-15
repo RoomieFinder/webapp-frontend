@@ -88,9 +88,7 @@ export default function CreatePost() {
 
       const res = await fetch("http://localhost:8080/property", {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`, // don’t set Content-Type, browser does it
-        },
+        credentials: "include",
         body: formDataToSend,
       });
 
