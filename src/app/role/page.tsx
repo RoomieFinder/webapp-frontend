@@ -10,7 +10,7 @@ export default function SelectRolePage() {
 
     const handleContinue = () => {
         if (selectedRole === "tenant") {
-            router.push("/tenants/profile");
+            router.push("/tenants/group");
         } else if (selectedRole === "landlord") {
             router.push("/landlords/booking");
         }

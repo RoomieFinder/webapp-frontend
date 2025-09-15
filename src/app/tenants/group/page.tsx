@@ -17,20 +17,36 @@ export default function CreateGroup() {
         setMessage("");
 
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/groups`, {
+            const token = localStorage.getItem("token");
+            if (!token) {
+                setMessage("⚠️ No token found. Please login first.");
+                setLoading(false);
+                return;
+            }
+
+            const url = `${process.env.NEXT_PUBLIC_API_URL}/groups/`; // match backend route
+            const body = {
+                group_name: groupName,
+                description: description,
+                property_id: Number(stayLocation),
+            };
+
+            console.log("Sending POST request to:", url);
+            console.log("Request body:", body);
+
+            const res = await fetch(url, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    Authorization: `Bearer ${localStorage.getItem("token")}`, // required if backend needs JWT
+                    Authorization: `Bearer ${token}`,
                 },
-                body: JSON.stringify({
-                    groupName,         // ✅ camelCase
-                    description,
-                    propertyId: Number(stayLocation), // backend expects uint
-                }),
+                body: JSON.stringify(body),
             });
 
+            console.log("Response status:", res.status);
+
             const data = await res.json();
+            console.log("Response data:", data);
 
             if (res.ok) {
                 setMessage("✅ Group created successfully!");
@@ -41,6 +57,7 @@ export default function CreateGroup() {
                 setMessage(`❌ ${data.message || "Failed to create group"}`);
             }
         } catch (error) {
+            console.error("Network error:", error);
             setMessage("⚠️ Network error. Please try again.");
         } finally {
             setLoading(false);
