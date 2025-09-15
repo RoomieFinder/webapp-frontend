@@ -109,11 +109,10 @@ export default function LoginPanel({
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 onBlur={handleBlurEmail}
-                className={`w-full p-2 border rounded focus:outline-none focus:ring-2 ${
-                  emailError
+                className={`w-full p-2 border rounded focus:outline-none focus:ring-2 ${emailError
                     ? "border-red-500 focus:ring-red-500"
                     : "border-gray-300 focus:ring-blue-500"
-                } text-black`}
+                  } text-black`}
               />
               {emailError && (
                 <p className="text-xs text-red-500">{emailError}</p>
@@ -147,9 +146,8 @@ export default function LoginPanel({
             {/* Message */}
             {message && (
               <p
-                className={`text-sm text-center ${
-                  message === "Login success" ? "text-green-500" : "text-red-500"
-                }`}
+                className={`text-sm text-center ${message === "Login success" ? "text-green-500" : "text-red-500"
+                  }`}
               >
                 {message}
               </p>
