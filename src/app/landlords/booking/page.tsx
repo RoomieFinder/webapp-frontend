@@ -1,5 +1,6 @@
 "use client";
 
+import TopBar from "@/components/ui/TopBar";
 import Image from "next/image";
 import { useState } from "react";
 
@@ -23,25 +24,46 @@ type Property = {
   description: string;
 };
 
-const initialBookingGroups: BookingGroup[] = [
-  {
-    id: "g1",
-    propertyName: "The Excel",
-    propertyThumb: "/properties/excel-thumb.jpg",
-    tenants: [
-      { id: "t1", name: "Jen", avatar: "/avatars/jen.jpg" },
-      { id: "t2", name: "Cathy", avatar: "/avatars/cathy.jpg" },
-      { id: "t3", name: "Nick", avatar: "/avatars/nick.jpg" },
-      { id: "t4", name: "Jack", avatar: "/avatars/jack.jpg" },
-    ],
-  },
-  {
-    id: "g2",
-    propertyName: "Lasalle",
-    propertyThumb: "/properties/lasalle-thumb.jpg",
-    tenants: [{ id: "t5", name: "Eve", avatar: "/avatars/eve.jpg" }],
-  },
-];
+type RequestData = {
+  ID: number;
+  Status: string;
+  Property: {
+    ID: number;
+    PlaceName: string;
+    Pictures: { Key: string; Link: string }[] | null;
+  };
+  Group: {
+    ID: number;
+    Name: string;
+    Members?: any[]; // TODO เพิ่มสมาชิกจริงในอนาคต
+  };
+};
+
+const fetchGroupRequests = async (landlordId: number) => {
+  try {
+    const res = await fetch(`{{URL}}/group/requests/landlord/${landlordId}`);
+    const data = await res.json();
+
+    if (!data.success) throw new Error("Failed to fetch requests");
+
+    // map API data -> bookingGroups
+    const groups = data.data.map((r: RequestData) => ({
+      id: r.ID.toString(),
+      propertyName: r.Property.PlaceName,
+      propertyThumb: r.Property.Pictures?.[0]?.Link || "/default-property.jpg",
+      tenants: r.Group.Members?.map((m: any) => ({
+        id: m.ID.toString(),
+        name: m.Name,
+        avatar: m.Avatar || "/default-avatar.jpg",
+      })) || [],
+      status: r.Status,
+    }));
+
+    setBookingGroups(groups);
+  } catch (err) {
+    console.error(err);
+  }
+};
 
 const initialProperties: Property[] = [
   {
@@ -81,18 +103,15 @@ export default function LandlordDashboardPage() {
   };
 
   return (  
-    <main className="bg-[#142233] min-h-screen py-24">
-      <div className="max-w-[1400px] mx-auto">
-        <header className="bg-white/95 rounded-md px-5 py-4 mb-6 shadow-md">
-          <h1 className="text-2xl tracking-wide font-mono text-[#1b2740]">
-            Properties Management
-          </h1>
-        </header>
+    <div className="flex flex-col h-screen bg-[#0F1B2D] text-black">
+      
+      <TopBar pageName="Properties Management" />
 
+      <div className="flex flex-1 p-4 gap-4">
         {/* Content grid - 2 columns */}
         <section className="grid grid-cols-2 gap-6">
           {/* Left: Bookings Approval */}
-          <section className="bg-white rounded-lg shadow-lg p-5">
+          <section className="bg-white rounded-lg shadow-lg p-5 ml-[62px]">
             <h2 className="text-2xl font-mono mb-4">Bookings Approval</h2>
 
             <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-2">
@@ -281,6 +300,6 @@ export default function LandlordDashboardPage() {
           </section>
         </section>
       </div>
-    </main>
+    </div>
   );
 }
