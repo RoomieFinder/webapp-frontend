@@ -11,8 +11,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const navItems = [
     { text: "Explore", path: "/tenants",icon: <ExploreIcon/> },
     { text: "Profile", path: "/tenants/profile", icon: <ProfileIcon /> },
-    { text: "Find Roommate", path: "/tenants/find-roommate", icon: <FindRoommateIcon /> },
-    { text: "Create Party", path: "/tenants/create-party", icon: <CreatePartyIcon /> },
+    { text: "Post Properties", path: "/tenants/posting", icon: <FindRoommateIcon /> },
+    { text: "Properties Management", path: "/tenants/properties-management", icon: <CreatePartyIcon /> },
     { text: "Payment", path: "/tenants/payment", icon: <PaymentIcon /> },
   ];
 
