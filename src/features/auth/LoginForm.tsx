@@ -55,6 +55,7 @@ export default function LoginPanel({
     try {
       const res = await fetch("http://localhost:8080/auth/login", {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
@@ -64,7 +65,7 @@ export default function LoginPanel({
 
       if (res.ok) {
         setMessage("Login success");
-        router.push("/role")
+        router.push("/role");
       } else {
         setMessage("Login failed: " + (data.message || ""));
       }
