@@ -61,8 +61,7 @@ export default function LoginPanel({
       });
 
       const data = await res.json();
-      console.log(data);
-      console.log(document.cookie);
+      // console.log(data);
 
       if (res.ok) {
         setMessage("Login success");
