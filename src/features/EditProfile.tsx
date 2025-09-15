@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import TopBar from "@/components/ui/TopBar";
-import { getUser } from "@/api/getUser";
+import { getUser, getUserCookie } from "@/api/getUser";
 
 export default function EditProfile() {
   const [name, setName] = useState("");
@@ -12,21 +12,25 @@ export default function EditProfile() {
   const [description, setDescription] = useState("");
 
   useEffect(() => {
-    // Replace 'userId' with the actual user id you want to fetch
-    const userId = "1";
-    const token = localStorage.getItem("token") || ""; // Adjust key as needed
-    getUser(userId, token)
-      .then((data) => {
-        setName(data.name || "");
-        setPhone(data.phone || "");
-        setEmail(data.email || "");
-        setGender(data.gender || "");
-        setHobbies(data.hobbies || "");
-        setDescription(data.description || "");
-      })
-      .catch((err) => {
-        // handle error if needed
-      });
+    const fetchUserData = async () => {
+      try {
+        // Get user info from cookie
+        const userCookie = await getUserCookie();
+        const userId = userCookie.data.ID;
+        // Fetch full user profile using userId
+        const userData = await getUser(userId);
+        console.log("Fetched user data:", userData);
+        setName(userData.Username || "");
+        setPhone(userData.Phone || "");
+        setEmail(userData.Email || "");
+        setGender(userData.Gender || "");
+        setHobbies(userData.Hobbies || "");
+        setDescription(userData.Description || "");
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+      }
+    };
+    fetchUserData();
   }, []);
 
   return (
@@ -34,7 +38,7 @@ export default function EditProfile() {
       <div className="flex flex-1 items-center justify-center mt-2">
         <div className="flex flex-col items-center w-full max-w-xl">
           <img
-            src="/profile-pic.jpg"
+            src="/default_profile.png"
             alt="Profile"
             className="rounded-full border-4 border-white mb-4"
             style={{ width: 140, height: 140, objectFit: "cover" }}
