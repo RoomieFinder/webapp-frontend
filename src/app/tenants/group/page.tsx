@@ -17,7 +17,7 @@ export default function CreateGroup() {
         setMessage("");
 
         try {
-            const url = "http://localhost:8080/group"; // backend route
+            const url = "http://localhost:8080/group"; 
             const body = {
                 group_name: groupName,
                 description: description,
@@ -58,9 +58,9 @@ export default function CreateGroup() {
     };
 
     return (
-        <div className="flex h-screen w-full">
+        <div className="min-h-screen w-full">
             {/* Main Content */}
-            <div className="flex-1 bg-[#192A46] flex flex-col">
+            <div className="bg-[#192A46] flex flex-col">
 
                 {/* TopBar */}
                 <div className="w-full px-4">
@@ -68,7 +68,7 @@ export default function CreateGroup() {
                 </div>
 
                 {/* Form */}
-                <div className="flex flex-col flex-1 items-center justify-center">
+                <div className="flex flex-col items-center justify-start py-10">
                     <div className="mb-6">
                         <Image
                             src="/sunset.svg" // replace with your image path
