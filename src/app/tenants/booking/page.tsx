@@ -30,7 +30,7 @@ export default function BookingPage() {
   const [isBooked, setIsBooked] = useState(false)
 
   // ตัวแปร pid สำหรับ API
-  const pid = 8;
+  const pid = 3;
 
   // Callback สำหรับ search box
   const handleSearch = (query: string) => {

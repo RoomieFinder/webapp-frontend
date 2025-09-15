@@ -2,294 +2,320 @@
 
 import TopBar from "@/components/ui/TopBar";
 import Image from "next/image";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-type Tenant = {
-  id: string;
-  name: string;
-  avatar: string;
-};
-
-type BookingGroup = {
-  id: string;
-  propertyName: string;
-  propertyThumb: string;
-  tenants: Tenant[];
-};
-
-type Property = {
-  id: string;
-  name: string;
-  image: string;
-  description: string;
-};
-
-type RequestData = {
+type PropertyPicture = {
   ID: number;
-  Status: string;
+  Link: string;
+  Key: string;
+};
+
+type GroupRequest = {
+  ID: number;
   Property: {
     ID: number;
     PlaceName: string;
-    Pictures: { Key: string; Link: string }[] | null;
+    Caption: string;
+    Type: string;
+    Address: string;
+    Description: string;
+    RentalFee: number;
+    Capacity: number;
+    RoomSize: number;
+    Pictures: PropertyPicture[];
   };
   Group: {
     ID: number;
     Name: string;
-    Members?: any[]; // TODO เพิ่มสมาชิกจริงในอนาคต
+    Description: string;
   };
+  Status: string;
+  RequestedAt: string;
 };
 
-const fetchGroupRequests = async (landlordId: number) => {
-  try {
-    const res = await fetch(`{{URL}}/group/requests/landlord/${landlordId}`);
-    const data = await res.json();
-
-    if (!data.success) throw new Error("Failed to fetch requests");
-
-    // map API data -> bookingGroups
-    const groups = data.data.map((r: RequestData) => ({
-      id: r.ID.toString(),
-      propertyName: r.Property.PlaceName,
-      propertyThumb: r.Property.Pictures?.[0]?.Link || "/default-property.jpg",
-      tenants: r.Group.Members?.map((m: any) => ({
-        id: m.ID.toString(),
-        name: m.Name,
-        avatar: m.Avatar || "/default-avatar.jpg",
-      })) || [],
-      status: r.Status,
-    }));
-
-    setBookingGroups(groups);
-  } catch (err) {
-    console.error(err);
-  }
+type Property = {
+  ID: number;
+  PlaceName: string;
+  Description: string;
+  Pictures: PropertyPicture[];
 };
 
-const initialProperties: Property[] = [
-  {
-    id: "p1",
-    name: "The Excel",
-    image: "/properties/excel.jpg",
-    description:
-      "A modern and stylish apartment located in the Lasalle area of Bangkok, offering a peaceful residential atmosphere with easy access to main roads and public transportation. The fully furnished unit features a cozy bedroom, spacious living area, functional kitchen, and private balcony.",
-  },
-  {
-    id: "p2",
-    name: "Lasalle",
-    image: "/properties/lasalle.jpg",
-    description:
-      "Modern 1-bedroom apartment located in the heart of Bangkok, offering a perfect blend of comfort and convenience. Fully furnished with stylish interiors, spacious living area, and a well-equipped kitchen. The unit features large windows with plenty of natural light and a private balcony.",
-  },
-];
+type User = {
+  ID: number;
+  Username: string;
+  Email: string;
+  Phone: string;
+  Role: string;
+  Landlord?: {
+    ID: number;
+    Properties?: Property[] | null;
+  };
+  Tenant?: any;
+};
+
 
 export default function LandlordDashboardPage() {
-  const [bookingGroups, setBookingGroups] =
-    useState<BookingGroup[]>(initialBookingGroups);
-  const [properties] = useState<Property[]>(initialProperties);
-  const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [requests, setRequests] = useState<GroupRequest[]>([]);
+  const [expandedGroup, setExpandedGroup] = useState<number | null>(null);
+  const [properties, setProperties] = useState<Property[]>([]);
 
-  const toggleExpand = (id: string) => {
+  const getMe = async () => {
+    try {
+      const res = await fetch("http://localhost:8080/auth/me", {
+        method: "GET",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      const json = await res.json();
+      if (json.success) {
+        setUser(json.data);
+        return json.data;
+      } else {
+        console.error("Failed to get current user");
+        return null;
+      }
+    } catch (err) {
+      console.error("Error fetching current user:", err);
+      return null;
+    }
+  };
+
+  // Fetch booking requests
+  useEffect(() => {
+    async function fetchRequests() {
+      const me = await getMe();
+      if (!me?.Landlord?.ID) return;
+
+      const lid = me.Landlord.ID;
+
+      try {
+        const res = await fetch(`http://localhost:8080/group/requests/landlord/${lid}`);
+        const json = await res.json();
+        if (json.success) {
+          setRequests(json.data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch requests", err);
+      }
+    }
+    fetchRequests();
+  }, []);
+
+  // Fetch all properties of landlord
+  useEffect(() => {
+    async function fetchAllProperties() {
+      try {
+        const res = await fetch(`http://localhost:8080/landlord/properties`, {
+          method: "GET",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+        });
+        const json = await res.json();
+        // console.log("Json res", json)
+          
+        setProperties(json.properties);
+        
+      } catch (err) {
+        console.error("Failed to fetch properties", err);
+      }
+    }
+    fetchAllProperties();
+  }, []);
+
+  const toggleExpand = (id: number) => {
     setExpandedGroup((prev) => (prev === id ? null : id));
   };
 
-  const handleApprove = (id: string) => {
-    setBookingGroups((prev) => prev.filter((g) => g.id !== id));
-    // TODO: call API PATCH /bookings/group/:id/approve
+  const sendResponse = async (id: number, accept: boolean) => {
+    try {
+      const res = await fetch(`http://localhost:8080/landlord/response/${id}`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ accept }),
+      });
+      console.log("Res", res);
+      setRequests((prev) => prev.filter((r) => r.ID !== id));
+    } catch (err) {
+      console.error("Failed to send response", err);
+    }
   };
 
-  const handleDeny = (id: string) => {
-    setBookingGroups((prev) => prev.filter((g) => g.id !== id));
-    // TODO: call API PATCH /bookings/group/:id/deny
-  };
-
-  return (  
+  return (
     <div className="flex flex-col h-screen bg-[#0F1B2D] text-black">
-      
       <TopBar pageName="Properties Management" />
 
       <div className="flex flex-1 p-4 gap-4">
-        {/* Content grid - 2 columns */}
-        <section className="grid grid-cols-2 gap-6">
-          {/* Left: Bookings Approval */}
+        <section className="grid grid-cols-2 gap-6 w-full">
+          {/* Left: Requests List */}
           <section className="bg-white rounded-lg shadow-lg p-5 ml-[62px]">
             <h2 className="text-2xl font-mono mb-4">Bookings Approval</h2>
 
             <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-2">
-              {bookingGroups.map((group) => {
-                const isExpanded = expandedGroup === group.id;
+              {requests.map((req) => {
+                const isExpanded = expandedGroup === req.ID;
+                const picture = req.Property.Pictures?.[0]?.Link;
+
                 return (
                   <div
-                    key={group.id}
+                    key={req.ID}
                     className="bg-white rounded-lg border p-3 shadow-sm"
                   >
-                    {/* Group header */}
-                    <div
-                      className="flex items-center justify-between"
-                    >
-                      {/* Property Thumbnail */}
+                    {/* Header */}
+                    <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="w-16 h-16 rounded-md overflow-hidden flex-shrink-0">
-                          <Image
-                            src={group.propertyThumb}
-                            alt={group.propertyName}
-                            width={64}
-                            height={64}
-                            className="object-cover"
-                          />
+                        <div className="w-16 h-16 rounded-md overflow-hidden flex-shrink-0 bg-gray-200 flex items-center justify-center">
+                          {picture ? (
+                            <Image
+                              src={picture}
+                              alt={req.Property.PlaceName}
+                              width={64}
+                              height={64}
+                              className="object-cover w-full h-full"
+                            />
+                          ) : (
+                            <span className="text-xs text-gray-500">No Image</span>
+                          )}
                         </div>
                         <div>
-                          <p className="font-semibold">{group.propertyName}</p>
+                          <p className="font-semibold">
+                            {req.Property.PlaceName}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            Group: {req.Group.Name}
+                          </p>
                         </div>
                       </div>
 
-                      {/* Clickable compact avatars bubble */}
-                      <div className="flex items-center gap-3">
-                        <div className="flex items-center bg-gray-100 rounded-full px-3 py-1 cursor-pointer" onClick={() => toggleExpand(group.id)}>
-                          {group.tenants.slice(0, 3).map((t) => (
-                            <div
-                              key={t.id}
-                              className="w-8 h-8 rounded-full overflow-hidden border -ml-2 first:ml-0"
-                            >
-                              <Image
-                                src={t.avatar}
-                                alt={t.name}
-                                width={32}
-                                height={32}
-                                className="object-cover"
-                              />
-                            </div>
-                          ))}
-                          {group.tenants.length > 3 && (
-                            <span className="ml-2 text-sm text-gray-600">
-                              +{group.tenants.length - 3}
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Action buttons */}
-                        <div className="flex items-center gap-2 ml-2">
+                      {/* Actions */}
+                      <div className="flex items-center gap-2">
                         <button
-                            onClick={() => handleDeny(group.id)}
-                            title="Deny"
-                            className="w-9 h-9 rounded-full flex items-center justify-center border shadow-sm hover:scale-105 transition bg-[#e25555] hover:bg-[#c73f3f] hover:cursor-pointer"
+                          onClick={() => sendResponse(req.ID, false)}
+                          title="Deny"
+                          className="w-9 h-9 rounded-full flex items-center justify-center border shadow-sm hover:scale-105 transition bg-[#e25555] hover:bg-[#c73f3f] hover:cursor-pointer"
                         >
-                            <svg
+                          <svg
                             width="16"
                             height="16"
                             viewBox="0 0 24 24"
                             fill="none"
-                            >
+                          >
                             <path
-                                d="M18 6L6 18"
-                                stroke="white"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
+                              d="M18 6L6 18"
+                              stroke="white"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
                             />
                             <path
-                                d="M6 6L18 18"
-                                stroke="white"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
+                              d="M6 6L18 18"
+                              stroke="white"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
                             />
-                            </svg>
+                          </svg>
                         </button>
 
                         <button
-                            onClick={() => handleApprove(group.id)}
-                            title="Approve"
-                            className="w-9 h-9 rounded-full flex items-center justify-center border shadow-sm hover:scale-105 transition bg-[#2fb86f] hover:bg-[#249d5e] hover:cursor-pointer"
+                          onClick={() => sendResponse(req.ID, true)}
+                          title="Approve"
+                          className="w-9 h-9 rounded-full flex items-center justify-center border shadow-sm hover:scale-105 transition bg-[#2fb86f] hover:bg-[#249d5e] hover:cursor-pointer"
                         >
-                            <svg
+                          <svg
                             width="16"
                             height="16"
                             viewBox="0 0 24 24"
                             fill="none"
-                            >
+                          >
                             <path
-                                d="M20 6L9 17l-5-5"
-                                stroke="white"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
+                              d="M20 6L9 17l-5-5"
+                              stroke="white"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
                             />
-                            </svg>
+                          </svg>
                         </button>
-                        </div>
                       </div>
                     </div>
 
-                    {/* Expanded tenants list */}
+                    {/* Expand */}
                     {isExpanded && (
-                      <div className="mt-1 pl-5 space-y-2">
-                        {group.tenants.map((t) => (
-                          <div
-                            key={t.id}
-                            className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-50 transition"
-                          >
-                            <div className="w-10 h-10 rounded-full overflow-hidden border">
-                              <Image
-                                src={t.avatar}
-                                alt={t.name}
-                                width={40}
-                                height={40}
-                                className="object-cover"
-                              />
-                            </div>
-                            <span className="font-medium">{t.name}</span>
-                          </div>
-                        ))}
+                      <div className="mt-2 pl-5 text-sm text-gray-700">
+                        <p>Status: {req.Status}</p>
+                        <p>
+                          Requested at:{" "}
+                          {new Date(req.RequestedAt).toLocaleString()}
+                        </p>
+                        <p>Description: {req.Group.Description}</p>
                       </div>
                     )}
+
+                    <button
+                      className="mt-2 text-xs text-blue-600 hover:underline"
+                      onClick={() => toggleExpand(req.ID)}
+                    >
+                      {isExpanded ? "Hide details" : "View details"}
+                    </button>
                   </div>
                 );
               })}
 
-              {bookingGroups.length === 0 && (
+              {requests.length === 0 && (
                 <div className="text-center text-gray-500 py-8">
-                  No pending bookings
+                  No pending requests
                 </div>
               )}
             </div>
           </section>
 
-          {/* Right: Edit Posts */}
+          {/* Right: Properties */}
           <section className="bg-white rounded-lg shadow-lg p-5">
             <h2 className="text-2xl font-mono mb-4">Edit Posts</h2>
+
             <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
-              {properties.map((p) => (
-                <article
-                  key={p.id}
-                  className="flex gap-4 items-start bg-white border rounded-lg p-4 shadow-sm"
-                >
-                  <div className="w-[160px] h-[100px] rounded-md overflow-hidden flex-shrink-0">
-                    <Image
-                      src={p.image}
-                      alt={p.name}
-                      width={160}
-                      height={100}
-                      className="object-cover"
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-start justify-between gap-4">
-                      <h3 className="text-2xl font-semibold">{p.name}</h3>
-                      <div className="flex gap-2">
-                        <button className="px-3 py-1 rounded-md border">
-                          Edit
-                        </button>
-                        <button className="px-3 py-1 rounded-md border">
-                          Delete
-                        </button>
-                      </div>
+              {properties.map((p) => {
+                const firstPic = p.Pictures?.[0]?.Link;
+
+                return (
+                  <article
+                    key={p.ID}
+                    className="flex gap-4 items-start bg-white border rounded-lg p-4 shadow-sm"
+                  >
+                    {/* Picture */}
+                    <div className="w-[160px] h-[100px] rounded-md overflow-hidden flex-shrink-0 bg-gray-200 flex items-center justify-center">
+                      {firstPic ? (
+                        <Image
+                          src={firstPic}
+                          alt={p.PlaceName}
+                          width={160}
+                          height={100}
+                          className="object-cover w-full h-full"
+                        />
+                      ) : (
+                        <span className="text-xs text-gray-500">No Image</span>
+                      )}
                     </div>
-                    <p className="mt-2 text-sm leading-relaxed text-gray-700">
-                      {p.description}
-                    </p>
-                  </div>
-                </article>
-              ))}
+
+                    {/* Details */}
+                    <div className="flex-1">
+                      <div className="flex items-start justify-between gap-4">
+                        <h3 className="text-2xl font-semibold">{p.PlaceName}</h3>
+                        <div className="flex gap-2">
+                          <button className="px-3 py-1 rounded-md border">Edit</button>
+                          <button className="px-3 py-1 rounded-md border">Delete</button>
+                        </div>
+                      </div>
+                      <p className="mt-2 text-sm leading-relaxed text-gray-700">
+                        {p.Description}
+                      </p>
+                    </div>
+                  </article>
+                );
+              })}
 
               {properties.length === 0 && (
                 <div className="text-center text-gray-500 py-8">
