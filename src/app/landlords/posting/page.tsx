@@ -70,7 +70,7 @@ export default function CreatePost() {
     try {
       const token = localStorage.getItem("token");
 
-      // ✅ build FormData
+      //build FormData
       const formDataToSend = new FormData();
       formDataToSend.append("placeName", formData.placeName);
       formDataToSend.append("caption", formData.caption);
@@ -81,7 +81,7 @@ export default function CreatePost() {
       formDataToSend.append("roomSize", formData.roomSize);
       formDataToSend.append("description", formData.description);
 
-      // ✅ backend expects "pictures"
+      //backend expects "pictures"
       photos.forEach((file) => {
         formDataToSend.append("pictures", file);
       });
