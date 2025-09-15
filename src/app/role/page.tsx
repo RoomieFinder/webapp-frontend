@@ -10,7 +10,7 @@ export default function SelectRolePage() {
 
     const handleContinue = () => {
         if (selectedRole === "tenant") {
-            router.push("/tenants/profile");
+            router.push("/tenants/group");
         } else if (selectedRole === "landlord") {
             router.push("/landlords/booking");
         }
@@ -23,7 +23,7 @@ export default function SelectRolePage() {
         >
             {/* White Rectangle */}
             <div
-                className="absolute top-0 left-1/2 -translate-x-1/2 bg-white shadow-xl flex flex-col items-center justify-center rounded-lg h-1/2 w-[1920px]"
+                className="absolute top-0 left-0 bg-white shadow-xl flex flex-col items-center justify-center h-[40%] w-full px-6"
             >
                 {/* Header */}
                 <div
@@ -45,7 +45,7 @@ export default function SelectRolePage() {
             <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex gap-6 items-center justify-center">
                 {/* Landlord Card */}
                 <div
-                    className={`flex flex-col items-center p-6 rounded-lg shadow cursor-pointer transition w-[450px] h-[450px] ${selectedRole === "landlord"
+                    className={`flex flex-col items-center p-6 rounded-lg shadow cursor-pointer transition w-[350px] h-[350px] ${selectedRole === "landlord"
                         ? "bg-gray-100 border-2 border-gray-400"
                         : "bg-gray-50 hover:bg-gray-200"
                         }`}
@@ -58,11 +58,11 @@ export default function SelectRolePage() {
                         height={180}
                         className="rounded-full mb-4 object-cover"
                     />
-                    <span className="font-medium text-black font-mono text-[36px]">Landlord</span>
+                    <span className="font-medium text-black font-mono text-[28px]">Landlord</span>
                 </div>
                 {/* Tenant Card */}
                 <div
-                    className={`flex flex-col items-center p-6 rounded-lg shadow cursor-pointer transition w-[450px] h-[450px] ${selectedRole === "tenant"
+                    className={`flex flex-col items-center p-6 rounded-lg shadow cursor-pointer transition w-[350px] h-[350px] ${selectedRole === "tenant"
                         ? "bg-gray-100 border-2 border-gray-400"
                         : "bg-gray-50 hover:bg-gray-200"
                         }`}
@@ -75,7 +75,7 @@ export default function SelectRolePage() {
                         height={180}
                         className="rounded-full mb-4 object-cover"
                     />
-                    <span className="font-medium text-black font-mono text-[36px]">Tenant</span>
+                    <span className="font-medium text-black font-mono text-[28px]">Tenant</span>
                 </div>
             </div>
             {/* Continue Button */}

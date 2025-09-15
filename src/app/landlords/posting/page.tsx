@@ -64,29 +64,45 @@ export default function CreatePost() {
   // Submit form
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setMessage("");
+
+    // Check all required fields
+    const requiredFields = [
+      "placeName",
+      "caption",
+      "type",
+      "address",
+      "price",
+      "capacity",
+      "roomSize",
+      "description",
+    ];
+
+    for (const field of requiredFields) {
+      if (!formData[field as keyof typeof formData]?.toString().trim()) {
+        setMessage(`❌ Please fill in the "${field}" field.`);
+        return;
+      }
+    }
+
+    if (photos.length === 0) {
+      setMessage("❌ Please upload at least one photo.");
+      return;
+    }
+
+    setLoading(true);
 
     try {
       const token = localStorage.getItem("token");
 
-      //build FormData
       const formDataToSend = new FormData();
-      formDataToSend.append("placeName", formData.placeName);
-      formDataToSend.append("caption", formData.caption);
-      formDataToSend.append("type", formData.type);
-      formDataToSend.append("address", formData.address);
-      formDataToSend.append("price", formData.price);
-      formDataToSend.append("capacity", formData.capacity);
-      formDataToSend.append("roomSize", formData.roomSize);
-      formDataToSend.append("description", formData.description);
-
-      //backend expects "pictures"
-      photos.forEach((file) => {
-        formDataToSend.append("pictures", file);
+      requiredFields.forEach((field) => {
+        formDataToSend.append(field, formData[field as keyof typeof formData]);
       });
 
-      const res = await fetch("http://localhost:8080/property", {
+      photos.forEach((file) => formDataToSend.append("pictures", file));
+
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/property`, {
         method: "POST",
         credentials: "include",
         body: formDataToSend,
