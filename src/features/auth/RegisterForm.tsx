@@ -98,8 +98,8 @@ export default function RegisterForm({
       });
 
       const data = await res.json();
-      // console.log(data)
-      if (res.ok && data.ID) {
+      // console.log(res, data)
+      if (res.ok && data.data.ID) {
         setMessage("Register success");
         onSwitchToLogin();
       } else {
