@@ -60,9 +60,9 @@ export default function LoginPanel({
       });
 
       const data = await res.json();
-      console.log(data);
+      // console.log(data);
 
-      if (res.ok && data.ID) {
+      if (res.ok) {
         setMessage("Login success");
         router.push("/role")
       } else {
