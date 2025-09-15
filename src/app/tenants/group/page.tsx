@@ -17,11 +17,11 @@ export default function CreateGroup() {
         setMessage("");
 
         try {
-            const url = `${process.env.NEXT_PUBLIC_API_URL}/groups/`; // backend route
+            const url = "http://localhost:8080/group"; // backend route
             const body = {
                 group_name: groupName,
                 description: description,
-                property_id: Number(stayLocation),
+                //property_id: Number(stayLocation),
             };
 
             console.log("Sending POST request to:", url);
@@ -29,7 +29,7 @@ export default function CreateGroup() {
 
             const res = await fetch(url, {
                 method: "POST",
-                credentials: "include", // ✅ important for cookie auth
+                credentials: "include",
                 headers: {
                     "Content-Type": "application/json",
                 },
