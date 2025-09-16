@@ -9,11 +9,11 @@ import PaymentIcon from '@mui/icons-material/PaidTwoTone';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const navItems = [
-    { text: "Explore", path: "/tenants",icon: <ExploreIcon/> },
-    { text: "Profile", path: "/tenants/profile", icon: <ProfileIcon /> },
-    { text: "Post Properties", path: "/tenants/posting", icon: <FindRoommateIcon /> },
-    { text: "Properties Management", path: "/tenants/properties-management", icon: <CreatePartyIcon /> },
-    { text: "Payment", path: "/tenants/payment", icon: <PaymentIcon /> },
+    { text: "Explore", path: "/landlords",icon: <ExploreIcon/> },
+    { text: "Profile", path: "/landlords/profile", icon: <ProfileIcon /> },
+    { text: "Post Properties", path: "/landlords/posting", icon: <FindRoommateIcon /> },
+    { text: "Properties Management", path: "/landlords/booking", icon: <CreatePartyIcon /> },
+    { text: "Payment", path: "/landlords/payment", icon: <PaymentIcon /> },
   ];
 
   return (

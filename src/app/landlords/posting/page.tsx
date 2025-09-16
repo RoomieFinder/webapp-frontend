@@ -102,7 +102,7 @@ export default function CreatePost() {
 
       photos.forEach((file) => formDataToSend.append("pictures", file));
 
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/property`, {
+      const res = await fetch("http://localhost:8080/property", {
         method: "POST",
         credentials: "include",
         body: formDataToSend,
