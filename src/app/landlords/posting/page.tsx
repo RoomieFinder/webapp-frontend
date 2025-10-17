@@ -176,6 +176,20 @@ export default function CreatePost() {
               />
             </div>
 
+            {/* Type */}
+            <div className="flex flex-col w-full">
+              <label>Type</label>
+              <input
+                type="text"
+                name="type"
+                value={formData.type}
+                onChange={handleChange}
+                required
+                placeholder="e.g., Apartment, Condo, Room"
+                className="rounded-md p-2 bg-white text-black"
+              />
+            </div>
+
             {/* Photos with drag & drop */}
             <div className="flex flex-col w-full">
               <label>Photos</label>
@@ -231,24 +245,24 @@ export default function CreatePost() {
               )}
             </div>
 
-            {/* Subdistrict + District */}
+            {/* District + Subdistrict */}
             <div className="flex flex-col md:flex-row gap-4 w-full">
-              <div className="flex flex-col flex-1">
-                <label>Subdistrict</label>
-                <input
-                  type="text"
-                  name="subdistrict"
-                  value={formData.subdistrict}
-                  onChange={handleChange}
-                  className="rounded-md p-2 bg-white text-black"
-                />
-              </div>
               <div className="flex flex-col flex-1">
                 <label>District</label>
                 <input
                   type="text"
                   name="district"
                   value={formData.district}
+                  onChange={handleChange}
+                  className="rounded-md p-2 bg-white text-black"
+                />
+              </div>
+              <div className="flex flex-col flex-1">
+                <label>Subdistrict</label>
+                <input
+                  type="text"
+                  name="subdistrict"
+                  value={formData.subdistrict}
                   onChange={handleChange}
                   className="rounded-md p-2 bg-white text-black"
                 />
