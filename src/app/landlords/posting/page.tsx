@@ -1,7 +1,7 @@
 "use client";
 
 import TopBar from "@/components/ui/TopBar";
-import { useState, DragEvent } from "react";
+import { useState, DragEvent, useEffect, useRef } from "react";
 
 export default function CreatePost() {
   const [formData, setFormData] = useState({
@@ -19,6 +19,102 @@ export default function CreatePost() {
   const [photos, setPhotos] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+
+  // --- Begin: district / subdistrict autocomplete state & helpers ---
+  type DistrictOpt = {
+    ID: number;
+    NameInThai: string;
+    ProvinceID?: number;
+  };
+  type SubdistrictOpt = {
+    ID: number;
+    NameInThai: string;
+    DistrictID: number;
+  };
+
+  const [districtQuery, setDistrictQuery] = useState("");
+  const [districtOptions, setDistrictOptions] = useState<DistrictOpt[]>([]);
+  const [showDistrictDropdown, setShowDistrictDropdown] = useState(false);
+  const [selectedDistrictID, setSelectedDistrictID] = useState<number | null>(null);
+
+  const [subdistrictQuery, setSubdistrictQuery] = useState("");
+  const [subdistrictOptions, setSubdistrictOptions] = useState<SubdistrictOpt[]>([]);
+  const [showSubdistrictDropdown, setShowSubdistrictDropdown] = useState(false);
+
+  const apiBase = "http://localhost:8080/locations";
+
+  const districtDebounceRef = useRef<number | null>(null);
+  const subdistrictDebounceRef = useRef<number | null>(null);
+
+  async function fetchDistricts(name: string) {
+    try {
+      const res = await fetch(`${apiBase}/districts?name=${encodeURIComponent(name)}`);
+      if (!res.ok) return setDistrictOptions([]);
+      const data = await res.json();
+      const mapped: DistrictOpt[] = (data || []).map((d: any) => ({
+        ID: d.ID,
+        NameInThai: d.NameInThai,
+        ProvinceID: d.ProvinceID,
+      }));
+      setDistrictOptions(mapped);
+    } catch (err) {
+      console.error("fetchDistricts error", err);
+      setDistrictOptions([]);
+    }
+  }
+
+  async function fetchSubdistricts(name: string) {
+    try {
+      const res = await fetch(`${apiBase}/subdistricts?name=${encodeURIComponent(name)}`);
+      if (!res.ok) return setSubdistrictOptions([]);
+      const data = await res.json();
+      let mapped: SubdistrictOpt[] = (data || []).map((s: any) => ({
+        ID: s.ID,
+        NameInThai: s.NameInThai,
+        DistrictID: s.DistrictID,
+      }));
+      if (selectedDistrictID !== null) {
+        mapped = mapped.filter((m) => m.DistrictID === selectedDistrictID);
+      }
+      setSubdistrictOptions(mapped);
+    } catch (err) {
+      console.error("fetchSubdistricts error", err);
+      setSubdistrictOptions([]);
+    }
+  }
+
+  function selectDistrict(opt: DistrictOpt) {
+    setSelectedDistrictID(opt.ID);
+    setFormData((prev) => ({ ...prev, district: opt.NameInThai, subdistrict: "" }));
+    setDistrictQuery(opt.NameInThai);
+    setShowDistrictDropdown(false);
+    setSubdistrictOptions([]);
+    setSubdistrictQuery("");
+  }
+
+  function selectSubdistrict(opt: SubdistrictOpt) {
+    setFormData((prev) => ({ ...prev, subdistrict: opt.NameInThai }));
+    setSubdistrictQuery(opt.NameInThai);
+    setShowSubdistrictDropdown(false);
+  }
+
+  // handle outside clicks to close dropdowns
+  const districtWrapperRef = useRef<HTMLDivElement | null>(null);
+  const subdistrictWrapperRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    function handleOutsideClick(e: MouseEvent) {
+      if (districtWrapperRef.current && !districtWrapperRef.current.contains(e.target as Node)) {
+        setShowDistrictDropdown(false);
+      }
+      if (subdistrictWrapperRef.current && !subdistrictWrapperRef.current.contains(e.target as Node)) {
+        setShowSubdistrictDropdown(false);
+      }
+    }
+    document.addEventListener("click", handleOutsideClick);
+    return () => document.removeEventListener("click", handleOutsideClick);
+  }, []);
+  // --- End: district / subdistrict autocomplete state & helpers ---  
 
   // Handle text input change
   const handleChange = (
@@ -247,25 +343,86 @@ export default function CreatePost() {
 
             {/* District + Subdistrict */}
             <div className="flex flex-col md:flex-row gap-4 w-full">
-              <div className="flex flex-col flex-1">
+              <div className="flex flex-col flex-1" ref={districtWrapperRef}>
                 <label>District</label>
                 <input
                   type="text"
                   name="district"
-                  value={formData.district}
-                  onChange={handleChange}
+                  value={districtQuery}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setDistrictQuery(v);
+                    setSelectedDistrictID(null);
+                    setFormData((prev) => ({ ...prev, district: v }));
+                    setShowDistrictDropdown(true);
+                    if (districtDebounceRef.current) window.clearTimeout(districtDebounceRef.current);
+                    districtDebounceRef.current = window.setTimeout(() => {
+                      if (v.trim().length > 0) fetchDistricts(v.trim());
+                      else setDistrictOptions([]);
+                    }, 300);
+                  }}
+                  onFocus={() => {
+                    setShowDistrictDropdown(true);
+                    if (districtQuery.trim().length > 0) fetchDistricts(districtQuery);
+                  }}
                   className="rounded-md p-2 bg-white text-black"
+                  autoComplete="off"
                 />
+                {showDistrictDropdown && districtOptions.length > 0 && (
+                  <ul className="bg-white text-black rounded-md mt-1 max-h-48 overflow-auto shadow z-50">
+                    {districtOptions.map((opt) => (
+                      <li
+                        key={opt.ID}
+                        className="px-3 py-2 hover:bg-slate-200 cursor-pointer"
+                        onClick={() => selectDistrict(opt)}
+                      >
+                        {opt.NameInThai}
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
-              <div className="flex flex-col flex-1">
+
+              <div className="flex flex-col flex-1" ref={subdistrictWrapperRef}>
                 <label>Subdistrict</label>
                 <input
                   type="text"
                   name="subdistrict"
-                  value={formData.subdistrict}
-                  onChange={handleChange}
+                  value={subdistrictQuery}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setSubdistrictQuery(v);
+                    setFormData((prev) => ({ ...prev, subdistrict: v }));
+                    setShowSubdistrictDropdown(true);
+                    if (subdistrictDebounceRef.current) window.clearTimeout(subdistrictDebounceRef.current);
+                    subdistrictDebounceRef.current = window.setTimeout(() => {
+                      if (v.trim().length > 0) fetchSubdistricts(v.trim());
+                      else setSubdistrictOptions([]);
+                    }, 300);
+                  }}
+                  onFocus={() => {
+                    setShowSubdistrictDropdown(true);
+                    if (subdistrictQuery.trim().length > 0) fetchSubdistricts(subdistrictQuery);
+                  }}
                   className="rounded-md p-2 bg-white text-black"
+                  autoComplete="off"
                 />
+                {showSubdistrictDropdown && subdistrictOptions.length > 0 && (
+                  <ul className="bg-white text-black rounded-md mt-1 max-h-48 overflow-auto shadow z-50">
+                    {subdistrictOptions.map((opt) => (
+                      <li
+                        key={opt.ID}
+                        className="px-3 py-2 hover:bg-slate-200 cursor-pointer"
+                        onClick={() => selectSubdistrict(opt)}
+                      >
+                        {opt.NameInThai}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {selectedDistrictID !== null && subdistrictOptions.length === 0 && subdistrictQuery.trim().length > 0 && (
+                  <p className="text-sm text-gray-300 mt-1">No subdistricts found for selected district.</p>
+                )}
               </div>
             </div>
 
