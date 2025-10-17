@@ -8,7 +8,8 @@ export default function CreatePost() {
     placeName: "",
     caption: "",
     type: "",
-    address: "",
+    subdistrict: "",
+    district: "",
     price: "",
     capacity: "",
     roomSize: "",
@@ -71,7 +72,8 @@ export default function CreatePost() {
       "placeName",
       "caption",
       "type",
-      "address",
+      "subdistrict",
+      "district",
       "price",
       "capacity",
       "roomSize",
@@ -116,7 +118,8 @@ export default function CreatePost() {
           placeName: "",
           caption: "",
           type: "",
-          address: "",
+          subdistrict: "",
+          district: "",
           price: "",
           capacity: "",
           roomSize: "",
@@ -228,24 +231,24 @@ export default function CreatePost() {
               )}
             </div>
 
-            {/* Address + Type */}
+            {/* Subdistrict + District */}
             <div className="flex flex-col md:flex-row gap-4 w-full">
               <div className="flex flex-col flex-1">
-                <label>Address</label>
+                <label>Subdistrict</label>
                 <input
                   type="text"
-                  name="address"
-                  value={formData.address}
+                  name="subdistrict"
+                  value={formData.subdistrict}
                   onChange={handleChange}
                   className="rounded-md p-2 bg-white text-black"
                 />
               </div>
               <div className="flex flex-col flex-1">
-                <label>Type</label>
+                <label>District</label>
                 <input
                   type="text"
-                  name="type"
-                  value={formData.type}
+                  name="district"
+                  value={formData.district}
                   onChange={handleChange}
                   className="rounded-md p-2 bg-white text-black"
                 />
