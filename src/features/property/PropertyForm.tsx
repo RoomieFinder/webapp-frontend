@@ -12,13 +12,16 @@ export type FormValues = {
     capacity: string;
     roomSize: string;
     description: string;
+    // existingPhotos can be passed in initialValues (not sent to backend directly)
+    existingPhotos?: { id: number; url: string }[];
 };
 
 type DistrictOpt = { ID: number; NameInThai: string; ProvinceID?: number };
 type SubdistrictOpt = { ID: number; NameInThai: string; DistrictID: number };
 
 type SubmitResult = { ok: boolean; message?: string };
-type SubmitHandler = (values: FormValues, photos: File[]) => Promise<SubmitResult>;
+// now submit handler receives deletedPictureIDs as third arg (for edit)
+type SubmitHandler = (values: FormValues, photos: File[], deletedPictureIDs?: number[]) => Promise<SubmitResult>;
 
 /**
  * Hook that contains all form state + location autocomplete logic.
@@ -35,9 +38,13 @@ export function usePropertyForm(initialValues: Partial<FormValues> = {}, submitH
         capacity: initialValues.capacity || "",
         roomSize: initialValues.roomSize || "",
         description: initialValues.description || "",
+        existingPhotos: initialValues.existingPhotos || [],
     });
 
     const [photos, setPhotos] = useState<File[]>([]);
+    const [existingPhotos, setExistingPhotos] = useState<{ id: number; url: string }[]>(initialValues.existingPhotos || []);
+    const [deletedPictureIDs, setDeletedPictureIDs] = useState<number[]>([]);
+
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState<string>("");
 
@@ -46,44 +53,120 @@ export function usePropertyForm(initialValues: Partial<FormValues> = {}, submitH
     const [districtOptions, setDistrictOptions] = useState<DistrictOpt[]>([]);
     const [showDistrictDropdown, setShowDistrictDropdown] = useState(false);
     const [selectedDistrictID, setSelectedDistrictID] = useState<number | null>(null);
+    const [districtHighlightIndex, setDistrictHighlightIndex] = useState<number>(-1);
 
     const [subdistrictQuery, setSubdistrictQuery] = useState(formData.subdistrict);
     const [subdistrictOptions, setSubdistrictOptions] = useState<SubdistrictOpt[]>([]);
     const [showSubdistrictDropdown, setShowSubdistrictDropdown] = useState(false);
+    const [subdistrictHighlightIndex, setSubdistrictHighlightIndex] = useState<number>(-1);
 
     const apiBase = "http://localhost:8080/locations";
     const districtDebounceRef = useRef<number | null>(null);
     const subdistrictDebounceRef = useRef<number | null>(null);
+
+    // apply async initialValues when they change (used by edit page)
+    useEffect(() => {
+        if (!initialValues || Object.keys(initialValues).length === 0) return;
+        const next: FormValues = {
+            placeName: initialValues.placeName ?? "",
+            caption: initialValues.caption ?? "",
+            type: initialValues.type ?? "",
+            subdistrict: initialValues.subdistrict ?? "",
+            district: initialValues.district ?? "",
+            price: initialValues.price ?? "",
+            capacity: initialValues.capacity ?? "",
+            roomSize: initialValues.roomSize ?? "",
+            description: initialValues.description ?? "",
+            existingPhotos: initialValues.existingPhotos ?? [],
+        };
+        setFormData(next);
+        setDistrictQuery(next.district);
+        setSubdistrictQuery(next.subdistrict);
+        setShowDistrictDropdown(false);
+        setShowSubdistrictDropdown(false);
+
+        // set existing photos state (for edit)
+        if (Array.isArray(initialValues.existingPhotos)) {
+            setExistingPhotos(initialValues.existingPhotos.map((p: any) => ({ id: p.id ?? p.ID ?? 0, url: p.url ?? p.URL ?? p.path ?? "" })));
+        } else {
+            setExistingPhotos([]);
+        }
+
+        // try to resolve district name -> ID and preload options, then preload subdistricts filtered by that district
+        (async () => {
+            if (next.district) {
+                try {
+                    const res = await fetch(`${apiBase}/districts?name=${encodeURIComponent(next.district)}`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        const mapped = (data || []).map((d: any) => ({ ID: d.ID, NameInThai: d.NameInThai, ProvinceID: d.ProvinceID }));
+                        setDistrictOptions(mapped);
+                        const match = mapped.find((m) => m.NameInThai === next.district);
+                        if (match) {
+                            setSelectedDistrictID(match.ID);
+                            // fetch subdistricts for the district and prefill options
+                            const sdRes = await fetch(`${apiBase}/subdistricts?name=${encodeURIComponent(next.subdistrict || "")}&districtID=${match.ID}`);
+                            if (sdRes.ok) {
+                                const sdData = await sdRes.json();
+                                const sdMapped: SubdistrictOpt[] = (sdData || []).map((s: any) => ({ ID: s.ID, NameInThai: s.NameInThai, DistrictID: s.DistrictID }));
+                                setSubdistrictOptions(sdMapped);
+                                setSubdistrictHighlightIndex(sdMapped.length > 0 ? 0 : -1);
+                            }
+                        } else {
+                            // no exact district match: still try to fetch subdistricts by name
+                            if (next.subdistrict) await fetchSubdistricts(next.subdistrict);
+                        }
+                    } else {
+                        if (next.subdistrict) await fetchSubdistricts(next.subdistrict);
+                    }
+                } catch (err) {
+                    console.error("init location load", err);
+                    if (next.subdistrict) await fetchSubdistricts(next.subdistrict);
+                }
+            } else if (next.subdistrict) {
+                await fetchSubdistricts(next.subdistrict);
+            }
+        })();
+    }, [initialValues]);
 
     async function fetchDistricts(name: string) {
         try {
             const res = await fetch(`${apiBase}/districts?name=${encodeURIComponent(name)}`);
             if (!res.ok) {
                 setDistrictOptions([]);
+                setDistrictHighlightIndex(-1);
                 return;
             }
             const data = await res.json();
-            setDistrictOptions((data || []).map((d: any) => ({ ID: d.ID, NameInThai: d.NameInThai, ProvinceID: d.ProvinceID })));
+            const mapped = (data || []).map((d: any) => ({ ID: d.ID, NameInThai: d.NameInThai, ProvinceID: d.ProvinceID }));
+            setDistrictOptions(mapped);
+            setDistrictHighlightIndex(mapped.length > 0 ? 0 : -1);
         } catch (err) {
             console.error("fetchDistricts", err);
             setDistrictOptions([]);
+            setDistrictHighlightIndex(-1);
         }
     }
 
     async function fetchSubdistricts(name: string) {
         try {
-            const res = await fetch(`${apiBase}/subdistricts?name=${encodeURIComponent(name)}`);
+            // include district filter if selectedDistrictID is set to reduce results server-side
+            const districtParam = selectedDistrictID !== null ? `&districtID=${selectedDistrictID}` : "";
+            const res = await fetch(`${apiBase}/subdistricts?name=${encodeURIComponent(name)}${districtParam}`);
             if (!res.ok) {
                 setSubdistrictOptions([]);
+                setSubdistrictHighlightIndex(-1);
                 return;
             }
             const data = await res.json();
             let mapped: SubdistrictOpt[] = (data || []).map((s: any) => ({ ID: s.ID, NameInThai: s.NameInThai, DistrictID: s.DistrictID }));
             if (selectedDistrictID !== null) mapped = mapped.filter((m) => m.DistrictID === selectedDistrictID);
             setSubdistrictOptions(mapped);
+            setSubdistrictHighlightIndex(mapped.length > 0 ? 0 : -1);
         } catch (err) {
             console.error("fetchSubdistricts", err);
             setSubdistrictOptions([]);
+            setSubdistrictHighlightIndex(-1);
         }
     }
 
@@ -94,12 +177,52 @@ export function usePropertyForm(initialValues: Partial<FormValues> = {}, submitH
         setShowDistrictDropdown(false);
         setSubdistrictOptions([]);
         setSubdistrictQuery("");
+        setDistrictHighlightIndex(-1);
+        setSubdistrictHighlightIndex(-1);
     }
 
     function selectSubdistrict(opt: SubdistrictOpt) {
         setFormData((prev) => ({ ...prev, subdistrict: opt.NameInThai }));
         setSubdistrictQuery(opt.NameInThai);
         setShowSubdistrictDropdown(false);
+        setSubdistrictHighlightIndex(-1);
+    }
+
+    // keyboard navigation handlers
+    function onDistrictKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+        if (!showDistrictDropdown || districtOptions.length === 0) return;
+        if (e.key === "ArrowDown") {
+            e.preventDefault();
+            setDistrictHighlightIndex((i) => Math.min(i + 1, districtOptions.length - 1));
+        } else if (e.key === "ArrowUp") {
+            e.preventDefault();
+            setDistrictHighlightIndex((i) => Math.max(i - 1, 0));
+        } else if (e.key === "Enter") {
+            e.preventDefault();
+            const idx = districtHighlightIndex >= 0 ? districtHighlightIndex : 0;
+            const opt = districtOptions[idx];
+            if (opt) selectDistrict(opt);
+        } else if (e.key === "Escape") {
+            setShowDistrictDropdown(false);
+        }
+    }
+
+    function onSubdistrictKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+        if (!showSubdistrictDropdown || subdistrictOptions.length === 0) return;
+        if (e.key === "ArrowDown") {
+            e.preventDefault();
+            setSubdistrictHighlightIndex((i) => Math.min(i + 1, subdistrictOptions.length - 1));
+        } else if (e.key === "ArrowUp") {
+            e.preventDefault();
+            setSubdistrictHighlightIndex((i) => Math.max(i - 1, 0));
+        } else if (e.key === "Enter") {
+            e.preventDefault();
+            const idx = subdistrictHighlightIndex >= 0 ? subdistrictHighlightIndex : 0;
+            const opt = subdistrictOptions[idx];
+            if (opt) selectSubdistrict(opt);
+        } else if (e.key === "Escape") {
+            setShowSubdistrictDropdown(false);
+        }
     }
 
     // outside click refs
@@ -142,7 +265,7 @@ export function usePropertyForm(initialValues: Partial<FormValues> = {}, submitH
     const defaultSubmit: SubmitHandler = async (values, photosArr) => {
         const requiredFields = ["placeName", "caption", "type", "subdistrict", "district", "price", "capacity", "roomSize", "description"];
         for (const f of requiredFields) if (!values[f as keyof FormValues]?.toString().trim()) return { ok: false, message: `Please fill ${f}` };
-        if (photosArr.length === 0) return { ok: false, message: "At least one photo required" };
+        if (photosArr.length === 0 && existingPhotos.length === 0) return { ok: false, message: "At least one photo required" };
 
         const fd = new FormData();
         requiredFields.forEach((field) => fd.append(field, values[field as keyof FormValues] as string));
@@ -162,7 +285,8 @@ export function usePropertyForm(initialValues: Partial<FormValues> = {}, submitH
         setMessage("");
         setLoading(true);
         const handler = submitHandler ?? defaultSubmit;
-        const res = await handler(formData, photos);
+        // pass deletedPictureIDs to submit handler so edit can send them to backend
+        const res = await handler(formData, photos, deletedPictureIDs);
         setLoading(false);
         setMessage(res.ok ? (res.message || "Success") : (res.message || "Failed"));
         if (res.ok) {
@@ -176,13 +300,18 @@ export function usePropertyForm(initialValues: Partial<FormValues> = {}, submitH
                 capacity: "",
                 roomSize: "",
                 description: "",
+                existingPhotos: [],
             });
             setPhotos([]);
+            setExistingPhotos([]);
             setDistrictQuery("");
             setDistrictOptions([]);
             setSubdistrictQuery("");
             setSubdistrictOptions([]);
             setSelectedDistrictID(null);
+            setDistrictHighlightIndex(-1);
+            setSubdistrictHighlightIndex(-1);
+            setDeletedPictureIDs([]);
         }
         return res;
     }
@@ -193,6 +322,10 @@ export function usePropertyForm(initialValues: Partial<FormValues> = {}, submitH
         setFormData,
         photos,
         setPhotos,
+        existingPhotos,
+        setExistingPhotos,
+        deletedPictureIDs,
+        setDeletedPictureIDs,
         loading,
         message,
         // location/autocomplete state & handlers
@@ -202,11 +335,15 @@ export function usePropertyForm(initialValues: Partial<FormValues> = {}, submitH
         showDistrictDropdown,
         setShowDistrictDropdown,
         selectedDistrictID,
+        districtHighlightIndex,
+        setDistrictHighlightIndex,
         subdistrictQuery,
         setSubdistrictQuery,
         subdistrictOptions,
         showSubdistrictDropdown,
         setShowSubdistrictDropdown,
+        subdistrictHighlightIndex,
+        setSubdistrictHighlightIndex,
         // refs
         districtWrapperRef,
         subdistrictWrapperRef,
@@ -220,22 +357,27 @@ export function usePropertyForm(initialValues: Partial<FormValues> = {}, submitH
             setSelectedDistrictID(null);
             setFormData((prev) => ({ ...prev, district: v }));
             setShowDistrictDropdown(true);
+            setDistrictHighlightIndex(-1);
             if (districtDebounceRef.current) window.clearTimeout(districtDebounceRef.current);
             districtDebounceRef.current = window.setTimeout(() => {
                 if (v.trim().length > 0) fetchDistricts(v.trim());
                 else setDistrictOptions([]);
-            }, 300);
+            }, 300) as unknown as number;
         },
         onSubdistrictInputChange: (v: string) => {
             setSubdistrictQuery(v);
             setFormData((prev) => ({ ...prev, subdistrict: v }));
             setShowSubdistrictDropdown(true);
+            setSubdistrictHighlightIndex(-1);
             if (subdistrictDebounceRef.current) window.clearTimeout(subdistrictDebounceRef.current);
             subdistrictDebounceRef.current = window.setTimeout(() => {
                 if (v.trim().length > 0) fetchSubdistricts(v.trim());
                 else setSubdistrictOptions([]);
-            }, 300);
+            }, 300) as unknown as number;
         },
+        // keyboard nav
+        onDistrictKeyDown,
+        onSubdistrictKeyDown,
         // generic handlers
         handleChange,
         handleFileChange,
@@ -258,6 +400,10 @@ export function PropertyFormBody({ form }: { form: ReturnType<typeof useProperty
     const {
         formData,
         photos,
+        existingPhotos,
+        setExistingPhotos,
+        deletedPictureIDs,
+        setDeletedPictureIDs,
         handleChange,
         handleFileChange,
         handleDrop,
@@ -276,7 +422,22 @@ export function PropertyFormBody({ form }: { form: ReturnType<typeof useProperty
         showSubdistrictDropdown,
         subdistrictRef,
         selectedDistrictID,
+        // keyboard & highlights
+        onDistrictKeyDown,
+        onSubdistrictKeyDown,
+        districtHighlightIndex,
+        subdistrictHighlightIndex,
+        setDistrictHighlightIndex,
+        setSubdistrictHighlightIndex,
+        fetchSubdistricts,
+        selectDistrict,
+        selectSubdistrict,
     } = form;
+
+    const removeExistingPhoto = (id: number) => {
+        setExistingPhotos((prev) => prev.filter((p) => p.id !== id));
+        setDeletedPictureIDs((prev) => [...prev, id]);
+    };
 
     return (
         <>
@@ -306,6 +467,21 @@ export function PropertyFormBody({ form }: { form: ReturnType<typeof useProperty
                     <input id="fileInput" type="file" multiple accept="image/*" onChange={handleFileChange} className="hidden" />
                 </div>
 
+                {/* existing photos (loaded from server on edit) */}
+                {existingPhotos && existingPhotos.some(p => p.url && p.url.trim() !== "") && (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 mt-4">
+                        {existingPhotos
+                            .filter((p) => p.url && p.url.trim() !== "")
+                            .map((p) => (
+                                <div key={p.id} className="relative w-28 h-28 bg-white rounded-lg overflow-hidden flex items-center justify-center shadow">
+                                    <img src={p.url || undefined} alt="existing" className="object-cover w-full h-full" />
+                                    <button type="button" onClick={() => removeExistingPhoto(p.id)} className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-600">×</button>
+                                </div>
+                            ))}
+                    </div>
+                )}
+
+                {/* newly added photos (File objects) */}
                 {photos.length > 0 && (
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 mt-4">
                         {photos.slice(0, 5).map((file, idx) => (
@@ -323,14 +499,58 @@ export function PropertyFormBody({ form }: { form: ReturnType<typeof useProperty
             <div className="flex flex-col md:flex-row gap-4 w-full">
                 <div className="flex flex-col flex-1" ref={districtRef}>
                     <label>District</label>
-                    <input type="text" name="district" value={districtQuery} onChange={(e) => onDistrictInputChange(e.target.value)} onFocus={() => { if (districtQuery.trim().length > 0) fetchDistricts(districtQuery); }} className="rounded-md p-2 bg-white text-black" autoComplete="off" />
-                    {showDistrictDropdown && districtOptions.length > 0 && <ul className="bg-white text-black rounded-md mt-1 max-h-48 overflow-auto shadow z-50">{districtOptions.map((opt) => (<li key={opt.ID} className="px-3 py-2 hover:bg-slate-200 cursor-pointer" onClick={() => form.selectDistrict(opt)}>{opt.NameInThai}</li>))}</ul>}
+                    <input
+                        type="text"
+                        name="district"
+                        value={districtQuery}
+                        onChange={(e) => onDistrictInputChange(e.target.value)}
+                        onFocus={() => { if (districtQuery.trim().length > 0) fetchDistricts(districtQuery); }}
+                        onKeyDown={(e) => onDistrictKeyDown(e)}
+                        className="rounded-md p-2 bg-white text-black"
+                        autoComplete="off"
+                    />
+                    {showDistrictDropdown && districtOptions.length > 0 && (
+                        <ul className="bg-white text-black rounded-md mt-1 max-h-48 overflow-auto shadow z-50">
+                            {districtOptions.map((opt, i) => (
+                                <li
+                                    key={opt.ID}
+                                    className={`px-3 py-2 cursor-pointer ${i === districtHighlightIndex ? "bg-slate-200 font-semibold" : "hover:bg-slate-200"}`}
+                                    onClick={() => selectDistrict(opt)}
+                                    onMouseOver={() => setDistrictHighlightIndex(i)}
+                                >
+                                    {opt.NameInThai}
+                                </li>
+                            ))}
+                        </ul>
+                    )}
                 </div>
 
                 <div className="flex flex-col flex-1" ref={subdistrictRef}>
                     <label>Subdistrict</label>
-                    <input type="text" name="subdistrict" value={subdistrictQuery} onChange={(e) => onSubdistrictInputChange(e.target.value)} onFocus={() => { if (subdistrictQuery.trim().length > 0) form.fetchSubdistricts(subdistrictQuery); }} className="rounded-md p-2 bg-white text-black" autoComplete="off" />
-                    {showSubdistrictDropdown && subdistrictOptions.length > 0 && <ul className="bg-white text-black rounded-md mt-1 max-h-48 overflow-auto shadow z-50">{subdistrictOptions.map((opt) => (<li key={opt.ID} className="px-3 py-2 hover:bg-slate-200 cursor-pointer" onClick={() => form.selectSubdistrict(opt)}>{opt.NameInThai}</li>))}</ul>}
+                    <input
+                        type="text"
+                        name="subdistrict"
+                        value={subdistrictQuery}
+                        onChange={(e) => onSubdistrictInputChange(e.target.value)}
+                        onFocus={() => { if (subdistrictQuery.trim().length > 0) fetchSubdistricts(subdistrictQuery); }}
+                        onKeyDown={(e) => onSubdistrictKeyDown(e)}
+                        className="rounded-md p-2 bg-white text-black"
+                        autoComplete="off"
+                    />
+                    {showSubdistrictDropdown && subdistrictOptions.length > 0 && (
+                        <ul className="bg-white text-black rounded-md mt-1 max-h-48 overflow-auto shadow z-50">
+                            {subdistrictOptions.map((opt, i) => (
+                                <li
+                                    key={opt.ID}
+                                    className={`px-3 py-2 cursor-pointer ${i === subdistrictHighlightIndex ? "bg-slate-200 font-semibold" : "hover:bg-slate-200"}`}
+                                    onClick={() => selectSubdistrict(opt)}
+                                    onMouseOver={() => setSubdistrictHighlightIndex(i)}
+                                >
+                                    {opt.NameInThai}
+                                </li>
+                            ))}
+                        </ul>
+                    )}
                     {selectedDistrictID !== null && subdistrictOptions.length === 0 && subdistrictQuery.trim().length > 0 && <p className="text-sm text-gray-300 mt-1">No subdistricts found for selected district.</p>}
                 </div>
             </div>
