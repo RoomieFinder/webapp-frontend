@@ -81,6 +81,9 @@ export default function EditPostPage() {
         }
     }
 
+    // add this line here so hooks are called unconditionally
+    const form = usePropertyForm(initialValues ?? {}, updateHandler);
+
     if (loadingInitial) {
         return (
             <div className="flex h-screen w-full">
@@ -92,7 +95,16 @@ export default function EditPostPage() {
         );
     }
 
-    const form = usePropertyForm(initialValues ?? {}, updateHandler);
+    if (loadingInitial) {
+        return (
+            <div className="flex h-screen w-full">
+                <div className="flex-1 bg-[#192A46] flex flex-col">
+                    <div className="w-full px-4"><TopBar pageName="Edit Post" /></div>
+                    <div className="flex-1 flex items-center justify-center text-white">Loading...</div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="flex h-screen w-full">

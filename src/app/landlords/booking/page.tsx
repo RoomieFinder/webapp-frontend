@@ -1,6 +1,7 @@
 "use client";
 
 import TopBar from "@/components/ui/TopBar";
+import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 
@@ -114,9 +115,9 @@ export default function LandlordDashboardPage() {
         });
         const json = await res.json();
         // console.log("Json res", json)
-          
+
         setProperties(json.properties);
-        
+
       } catch (err) {
         console.error("Failed to fetch properties", err);
       }
@@ -305,8 +306,34 @@ export default function LandlordDashboardPage() {
                       <div className="flex items-start justify-between gap-4">
                         <h3 className="text-2xl font-semibold">{p.PlaceName}</h3>
                         <div className="flex gap-2">
-                          <button className="px-3 py-1 rounded-md border">Edit</button>
-                          <button className="px-3 py-1 rounded-md border">Delete</button>
+                          <Link
+                            href={`/landlords/edit?pid=${p.ID}`}
+                            className="px-3 py-1 rounded-md border bg-white hover:bg-gray-100"
+                          >
+                            Edit
+                          </Link>
+                          <button
+                            className="px-3 py-1 rounded-md border"
+                            onClick={async () => {
+                              if (!confirm("Delete this property?")) return;
+                              try {
+                                const res = await fetch(`http://localhost:8080/property/${p.ID}`, {
+                                  method: "DELETE",
+                                  credentials: "include",
+                                });
+                                if (res.ok) {
+                                  // refresh list: simple page reload (or replace with state re-fetch)
+                                  window.location.reload();
+                                } else {
+                                  console.error("delete failed");
+                                }
+                              } catch (err) {
+                                console.error(err);
+                              }
+                            }}
+                          >
+                            Delete
+                          </button>
                         </div>
                       </div>
                       <p className="mt-2 text-sm leading-relaxed text-gray-700">
