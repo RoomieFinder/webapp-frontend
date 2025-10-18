@@ -4,21 +4,19 @@ import SearchBar from "@/components/ui/SearchBar";
 import Image from "next/image";
 import { useState, useEffect } from "react";
 
-interface PropertyPicture {
-  Key: string;
-  Link: string;
-}
-
 interface Property {
-  PlaceName: string;
-  Caption: string;
-  Type: string;
-  Address: string;
-  Description: string;
-  RentalFee: number;
-  Capacity: number;
-  RoomSize: number;
-  Pictures: PropertyPicture[];
+  id: number;
+  placeName: string;
+  caption: string;
+  type: string;
+  rentalFee: number;
+  capacity: number;
+  roomSize: number;
+  description: string;
+  pictures: string[]; // เพราะ API ส่ง array ของ string
+  subDistrictName: string;
+  districtName: string;
+  provinceName: string;
 }
 
 export default function BookingPage() {
@@ -27,10 +25,10 @@ export default function BookingPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterValue, setFilterValue] = useState("");
   const [property, setProperty] = useState<Property | null>(null);
-  const [isBooked, setIsBooked] = useState(false)
+  const [isBooked, setIsBooked] = useState(false);
 
   // ตัวแปร pid สำหรับ API
-  const pid = 3;
+  const pid = 1;
 
   // Callback สำหรับ search box
   const handleSearch = (query: string) => {
@@ -51,10 +49,23 @@ export default function BookingPage() {
         const res = await fetch(`http://localhost:8080/property/${pid}`, {
           method: "GET",
           credentials: "include",
-          headers: { "Content-Type": "application/json" }
+          headers: { "Content-Type": "application/json" },
         });
+
         const data = await res.json();
-        setProperty(data.property);
+        // console.log("datap", data);
+        const p: Property = data.property;
+
+        // // ถ้าอยาก Override
+        // const p: Property = data.property;
+        // setProperty({
+        //   ...p,
+        //   Caption: p.Caption || "",
+        //   Type: p.Type || "",
+        //   Pictures: p.Pictures || [],
+        // });
+
+        setProperty(p);
       } catch (error) {
         console.error("Failed to fetch property:", error);
       }
@@ -70,15 +81,18 @@ export default function BookingPage() {
     try {
       // setIsBooked(true);
 
-      const res = await fetch(`http://localhost:8080/group/booking/request/${pid}`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        // body: JSON.stringify({
-        //   duration,
-        //   bookingType,
-        // }),
-      });
+      const res = await fetch(
+        `http://localhost:8080/group/booking/request/${pid}`,
+        {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          // body: JSON.stringify({
+          //   duration,
+          //   bookingType,
+          // }),
+        }
+      );
 
       if (!res.ok) throw new Error("Booking failed");
 
@@ -118,18 +132,25 @@ export default function BookingPage() {
 
           <h2 className="text-2xl font-bold my-4">
             Booking{" "}
-            <span className="ml-2">{property ? property.PlaceName : "Loading..."}</span>
+            <span className="ml-10">
+              {property ? property.placeName : "Loading..."}
+            </span>
           </h2>
 
           {/* Pictures */}
           <div className="flex gap-2 mb-4">
-            {property?.Pictures.map((pic) => (
-              <div key={pic.Key} className="w-1/3 h-100 relative">
-                <Image src={pic.Link} alt={`property-${pic.Key}`} fill className="object-cover rounded-lg" />
+            {property?.pictures.map((pic, i) => (
+              <div key={i} className="w-1/3 h-100 relative">
+                <Image
+                  src={pic}
+                  alt={`property-${property.placeName}`}
+                  fill
+                  className="object-cover rounded-lg"
+                />
               </div>
             ))}
 
-            {!property?.Pictures?.length &&
+            {!property?.pictures?.length &&
               [1, 2, 3].map((i) => (
                 <div
                   key={i}
@@ -141,7 +162,9 @@ export default function BookingPage() {
           </div>
 
           <h3 className="text-xl font-semibold mb-2">Description</h3>
-          <p className="text-gray-700">{property ? property.Description : "Loading description..."}</p>
+          <p className="text-gray-700">
+            {property ? property.description : "Loading description..."}
+          </p>
         </div>
 
         {/* Right side: Booking info */}
@@ -149,7 +172,7 @@ export default function BookingPage() {
           <div>
             <h3 className="text-xl font-semibold mb-4">Booking Info</h3>
 
-            <div className="mb-4">
+            {/* <div className="mb-4">
               <label className="block text-gray-600 mb-2">Duration</label>
               <input
                 type="text"
@@ -158,7 +181,7 @@ export default function BookingPage() {
                 placeholder="Enter duration"
                 className="w-full rounded-[16px] border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
-            </div>
+            </div> */}
 
             <div className="mb-4">
               <label className="block text-gray-600 mb-2">Booking by</label>
@@ -191,7 +214,9 @@ export default function BookingPage() {
             onClick={handleBooking}
             disabled={isBooked} // ปุ่ม disabled หลัง submit
             className={`mx-auto mt-6 w-1/3 ${
-              isBooked ? "bg-gray-400 cursor-not-allowed" : "bg-[#F0EBD8] hover:bg-[#E0DBC8] hover:cursor-pointer"
+              isBooked
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-[#F0EBD8] hover:bg-[#E0DBC8] hover:cursor-pointer"
             } text-black font-medium py-2 rounded-[16px] transition`}
           >
             {isBooked ? "Pending..." : "Book"}
