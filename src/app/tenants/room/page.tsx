@@ -18,11 +18,18 @@ export default function PreferredRoomPage() {
     const [loading, setLoading] = useState(false);
     const [deletingId, setDeletingId] = useState<number | null>(null);
     const [bookingId, setBookingId] = useState<number | null>(null);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const [manualGid, setManualGid] = useState<string>("");
+    const [lastUrl, setLastUrl] = useState<string | null>(null);
+    const [lastStatus, setLastStatus] = useState<number | null>(null);
+    const [lastResponse, setLastResponse] = useState<any>(null);
+    const [logs, setLogs] = useState<string[]>([]);
 
     useEffect(() => {
         const search = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
         const q = search?.get("gid") || null;
-        setGid(q);
+        // default to gid=1 when missing so page shows something for debugging
+        setGid(q || "1"); 
     }, []);
 
     useEffect(() => {
@@ -31,22 +38,41 @@ export default function PreferredRoomPage() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [gid]);
 
+    function loadManualGid() {
+        if (!manualGid) return setErrorMessage("Please enter a group id");
+        setErrorMessage(null);
+        setGid(manualGid);
+    }
+
     async function fetchPreferred() {
         setLoading(true);
         try {
-            const res = await fetch(`http://localhost:8080/groups/${gid}/preferred-property/`, {
+            const url = `http://localhost:8080/group/${gid}/preferred-property/`;
+            console.log('[preferred] fetching', url);
+            setLogs((s) => [...s, `[fetch] ${new Date().toISOString()} GET ${url}`]);
+            setLastUrl(url);
+            const res = await fetch(url, {
                 method: "GET",
                 credentials: "include",
             });
             const data = await res.json();
-            if (res.ok) setItems(data.data || []);
-            else {
+            console.log('[preferred] fetch result', res.status, data);
+            setLastStatus(res.status);
+            setLastResponse(data);
+            setLogs((s) => [...s, `[resp] ${new Date().toISOString()} ${res.status} ${JSON.stringify(data).slice(0, 200)}`]);
+            if (res.ok) {
+                setItems(data.data || []);
+                setErrorMessage(null);
+            } else {
+                const msg = data?.message || "Failed to fetch preferred properties";
                 console.error("Failed to fetch preferred:", data);
                 setItems([]);
+                setErrorMessage(msg);
             }
         } catch (err) {
             console.error(err);
             setItems([]);
+            setErrorMessage("Network error while fetching preferred properties");
         } finally {
             setLoading(false);
         }
@@ -57,11 +83,18 @@ export default function PreferredRoomPage() {
         if (!confirm("Remove this preferred property?")) return;
         setDeletingId(pid);
         try {
-            const res = await fetch(`http://localhost:8080/groups/${gid}/preferred-property/${pid}`, {
+            const delUrl = `http://localhost:8080/group/${gid}/preferred-property/${pid}`;
+            console.log('[preferred] deleting', delUrl);
+            setLogs((s) => [...s, `[delete] ${new Date().toISOString()} DELETE ${delUrl}`]);
+            setLastUrl(delUrl);
+            const res = await fetch(delUrl, {
                 method: "DELETE",
                 credentials: "include",
             });
             const data = await res.json();
+            setLastStatus(res.status);
+            setLastResponse(data);
+            setLogs((s) => [...s, `[resp] ${new Date().toISOString()} ${res.status} ${JSON.stringify(data).slice(0, 200)}`]);
             if (res.ok) setItems((s) => s.filter((p) => p.id !== pid));
             else alert(data.message || "Failed to remove preferred property");
         } catch (err) {
@@ -76,13 +109,19 @@ export default function PreferredRoomPage() {
         if (bookingId === pid) return;
         setBookingId(pid);
         try {
-            const res = await fetch(`http://localhost:8080/group/booking/request/${pid}`, {
+            const bookUrl = `http://localhost:8080/group/booking/request/${pid}`;
+            setLogs((s) => [...s, `[book] ${new Date().toISOString()} POST ${bookUrl}`]);
+            setLastUrl(bookUrl);
+            const res = await fetch(bookUrl, {
                 method: "POST",
                 credentials: "include",
             });
+            const bookData = await res.json();
+            setLastStatus(res.status);
+            setLastResponse(bookData);
+            setLogs((s) => [...s, `[resp] ${new Date().toISOString()} ${res.status} ${JSON.stringify(bookData).slice(0, 200)}`]);
             if (!res.ok) {
-                const d = await res.json();
-                alert(d.message || "Booking failed");
+                alert(bookData.message || "Booking failed");
                 return;
             }
             alert("Booking request sent! Pending approval.");
@@ -121,7 +160,15 @@ export default function PreferredRoomPage() {
                                     {/* Thumbnail on the left */}
                                     <div className="w-36 h-28 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100 shadow-sm">
                                         {prop.pictures && prop.pictures.length > 0 ? (
-                                            <Image src={prop.pictures[0]} alt={prop.name} width={160} height={112} className="object-cover" />
+                                            <Image
+                                                src={prop.pictures[0].startsWith("/") ? `http://localhost:8080${prop.pictures[0]}` : prop.pictures[0]}
+                                                alt={prop.name}
+                                                width={160}
+                                                height={112}
+                                                className="object-cover"
+                                                sizes="(max-width: 640px) 120px, 160px"
+                                                unoptimized
+                                            />
                                         ) : (
                                             <div className="w-full h-full flex items-center justify-center text-sm text-gray-500">No Image</div>
                                         )}
