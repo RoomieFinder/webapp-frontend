@@ -101,7 +101,7 @@ export function usePropertyForm(initialValues: Partial<FormValues> = {}, submitH
                         const data = await res.json();
                         const mapped = (data || []).map((d: any) => ({ ID: d.ID, NameInThai: d.NameInThai, ProvinceID: d.ProvinceID }));
                         setDistrictOptions(mapped);
-                        const match = mapped.find((m) => m.NameInThai === next.district);
+                        const match = mapped.find((m: DistrictOpt) => m.NameInThai === next.district);
                         if (match) {
                             setSelectedDistrictID(match.ID);
                             // fetch subdistricts for the district and prefill options
@@ -150,8 +150,8 @@ export function usePropertyForm(initialValues: Partial<FormValues> = {}, submitH
 
     async function fetchSubdistricts(name: string) {
         try {
-            // include district filter if selectedDistrictID is set to reduce results server-side
-            const districtParam = selectedDistrictID !== null ? `&districtID=${selectedDistrictID}` : "";
+            // include district name as an extra param when a district is selected (backend may ignore unknown params)
+            const districtParam = selectedDistrictID !== null && districtQuery.trim() !== "" ? `&district=${encodeURIComponent(districtQuery)}` : "";
             const res = await fetch(`${apiBase}/subdistricts?name=${encodeURIComponent(name)}${districtParam}`);
             if (!res.ok) {
                 setSubdistrictOptions([]);
@@ -160,7 +160,7 @@ export function usePropertyForm(initialValues: Partial<FormValues> = {}, submitH
             }
             const data = await res.json();
             let mapped: SubdistrictOpt[] = (data || []).map((s: any) => ({ ID: s.ID, NameInThai: s.NameInThai, DistrictID: s.DistrictID }));
-            if (selectedDistrictID !== null) mapped = mapped.filter((m) => m.DistrictID === selectedDistrictID);
+            if (selectedDistrictID !== null) mapped = mapped.filter((m: SubdistrictOpt) => m.DistrictID === selectedDistrictID);
             setSubdistrictOptions(mapped);
             setSubdistrictHighlightIndex(mapped.length > 0 ? 0 : -1);
         } catch (err) {
@@ -267,16 +267,59 @@ export function usePropertyForm(initialValues: Partial<FormValues> = {}, submitH
         for (const f of requiredFields) if (!values[f as keyof FormValues]?.toString().trim()) return { ok: false, message: `Please fill ${f}` };
         if (photosArr.length === 0 && existingPhotos.length === 0) return { ok: false, message: "At least one photo required" };
 
+        // guard: total upload size (client-side) to avoid connection resets for very large files
+        try {
+            const totalBytes = photosArr.reduce((s, p) => s + (p.size || 0), 0);
+            const maxBytes = 25 * 1024 * 1024; // 25 MB
+            if (totalBytes > maxBytes) return { ok: false, message: `Total photos too large (${Math.round(totalBytes / 1024 / 1024)}MB). Max ${maxBytes / 1024 / 1024}MB.` };
+        } catch (e) {
+            console.warn("could not compute upload size", e);
+        }
+
         const fd = new FormData();
         requiredFields.forEach((field) => fd.append(field, values[field as keyof FormValues] as string));
         photosArr.forEach((p) => fd.append("pictures", p));
+
+        const doFetch = async () => {
+            try {
+                const res = await fetch("http://localhost:8080/property", { method: "POST", credentials: "include", body: fd });
+                if (!res.ok) {
+                    let text = "";
+                    try { text = await res.text(); } catch (e) { /* ignore */ }
+                    console.error("Create failed", res.status, text);
+                    // attempt to parse JSON message if possible
+                    try {
+                        const data = JSON.parse(text || "{}");
+                        return { ok: false, message: data.error || (data.message as string) || `Create failed (${res.status})` };
+                    } catch {
+                        return { ok: false, message: `Create failed (${res.status})` };
+                    }
+                }
+                // success
+                try {
+                    const data = await res.json();
+                    return { ok: true, message: data.message || "Created" };
+                } catch {
+                    return { ok: true, message: "Created" };
+                }
+            } catch (err) {
+                // network error
+                console.error("Network error during create:", err);
+                throw err;
+            }
+        };
+
+        // single retry on network error
         try {
-            const res = await fetch("http://localhost:8080/property", { method: "POST", credentials: "include", body: fd });
-            const data = await res.json();
-            if (!res.ok) return { ok: false, message: data.error || "Create failed" };
-            return { ok: true, message: "Created" };
-        } catch {
-            return { ok: false, message: "Network error" };
+            return await doFetch();
+        } catch (firstErr) {
+            console.warn("Retrying create after network error...");
+            try {
+                return await doFetch();
+            } catch (secondErr) {
+                console.error("Second network error during create:", secondErr);
+                return { ok: false, message: "Network error (check server)" };
+            }
         }
     };
 
@@ -439,6 +482,25 @@ export function PropertyFormBody({ form }: { form: ReturnType<typeof useProperty
         setDeletedPictureIDs((prev) => [...prev, id]);
     };
 
+    // keep highlighted option scrolled into view for keyboard navigation
+    useEffect(() => {
+        if (districtHighlightIndex >= 0 && districtOptions && districtOptions.length > 0) {
+            const opt = districtOptions[districtHighlightIndex];
+            const id = `district-opt-${opt?.ID ?? districtHighlightIndex}`;
+            const el = document.getElementById(id);
+            if (el && (el as HTMLElement).scrollIntoView) (el as HTMLElement).scrollIntoView({ block: "nearest" });
+        }
+    }, [districtHighlightIndex, districtOptions]);
+
+    useEffect(() => {
+        if (subdistrictHighlightIndex >= 0 && subdistrictOptions && subdistrictOptions.length > 0) {
+            const opt = subdistrictOptions[subdistrictHighlightIndex];
+            const id = `subdistrict-opt-${opt?.ID ?? subdistrictHighlightIndex}`;
+            const el = document.getElementById(id);
+            if (el && (el as HTMLElement).scrollIntoView) (el as HTMLElement).scrollIntoView({ block: "nearest" });
+        }
+    }, [subdistrictHighlightIndex, subdistrictOptions]);
+
     return (
         <>
             {/* Place’s name */}
@@ -513,7 +575,8 @@ export function PropertyFormBody({ form }: { form: ReturnType<typeof useProperty
                         <ul className="bg-white text-black rounded-md mt-1 max-h-48 overflow-auto shadow z-50">
                             {districtOptions.map((opt, i) => (
                                 <li
-                                    key={opt.ID}
+                                    id={`district-opt-${opt.ID ?? i}`}
+                                    key={opt.ID ?? i}
                                     className={`px-3 py-2 cursor-pointer ${i === districtHighlightIndex ? "bg-slate-200 font-semibold" : "hover:bg-slate-200"}`}
                                     onClick={() => selectDistrict(opt)}
                                     onMouseOver={() => setDistrictHighlightIndex(i)}
@@ -541,7 +604,8 @@ export function PropertyFormBody({ form }: { form: ReturnType<typeof useProperty
                         <ul className="bg-white text-black rounded-md mt-1 max-h-48 overflow-auto shadow z-50">
                             {subdistrictOptions.map((opt, i) => (
                                 <li
-                                    key={opt.ID}
+                                    id={`subdistrict-opt-${opt.ID ?? i}`}
+                                    key={opt.ID ?? i}
                                     className={`px-3 py-2 cursor-pointer ${i === subdistrictHighlightIndex ? "bg-slate-200 font-semibold" : "hover:bg-slate-200"}`}
                                     onClick={() => selectSubdistrict(opt)}
                                     onMouseOver={() => setSubdistrictHighlightIndex(i)}

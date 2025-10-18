@@ -11,42 +11,58 @@ export default function EditPostPage() {
     const pid = searchParams?.get("pid") ?? undefined;
     const [loadingInitial, setLoadingInitial] = useState(true);
     const [initialValues, setInitialValues] = useState<Partial<FormValues> | null>(null);
+    const [notFound, setNotFound] = useState(false);
 
     useEffect(() => {
         if (!pid) { setLoadingInitial(false); return; }
         (async () => {
             try {
                 const res = await fetch(`http://localhost:8080/property/${pid}`);
-                if (!res.ok) { setLoadingInitial(false); return; }
+                if (!res.ok) {
+                    if (res.status === 404) setNotFound(true);
+                    setLoadingInitial(false);
+                    return;
+                }
                 const json = await res.json();
                 const p = json.property ?? json;
 
-                // try to extract picture list from common fields returned by backend
+                if (!p || Object.keys(p).length === 0) {
+                    setNotFound(true);
+                    setLoadingInitial(false);
+                    return;
+                }
+
+                // tolerant picture extraction (handles string arrays and object arrays, different casing)
                 let pics: { id: number; url: string }[] = [];
-                if (Array.isArray(p.Pictures)) {
-                    pics = p.Pictures.map((x: any) => ({ id: x.ID ?? x.id ?? 0, url: x.URL ?? x.url ?? x.Path ?? x.path ?? "" }));
+                if (Array.isArray(p.pictures)) {
+                    pics = p.pictures.map((u: any, i: number) => ({ id: i, url: typeof u === "string" ? u : (u.url ?? u.URL ?? "") }));
+                } else if (Array.isArray(p.Pictures)) {
+                    pics = p.Pictures.map((x: any, i: number) => ({ id: x.ID ?? x.id ?? i, url: x.URL ?? x.url ?? x.Path ?? x.path ?? "" }));
                 } else if (Array.isArray(p.PicturesUrls)) {
                     pics = p.PicturesUrls.map((u: any, i: number) => ({ id: i, url: typeof u === "string" ? u : (u.url ?? u) }));
                 } else if (Array.isArray(p.Images)) {
-                    pics = p.Images.map((x: any) => ({ id: x.ID ?? x.id ?? 0, url: x.URL ?? x.url ?? x }));
+                    pics = p.Images.map((x: any, i: number) => ({ id: x.ID ?? x.id ?? i, url: x.URL ?? x.url ?? x }));
                 } else if (Array.isArray(p.Photos)) {
-                    pics = p.Photos.map((x: any) => ({ id: x.ID ?? x.id ?? 0, url: x.URL ?? x.url ?? x }));
+                    pics = p.Photos.map((x: any, i: number) => ({ id: x.ID ?? x.id ?? i, url: x.URL ?? x.url ?? x }));
                 }
 
+                // build initial values tolerant to key casing and alternate field names
                 setInitialValues({
-                    placeName: p.PlaceName ?? "",
-                    caption: p.Caption ?? "",
-                    type: p.Type ?? "",
-                    price: p.RentalFee != null ? String(p.RentalFee) : "",
-                    capacity: p.Capacity != null ? String(p.Capacity) : "",
-                    roomSize: p.RoomSize != null ? String(p.RoomSize) : "",
-                    description: p.Description ?? "",
-                    district: p.SubDistrict?.District?.NameInThai ?? p.SubDistrict?.DistrictName ?? "",
-                    subdistrict: p.SubDistrict?.NameInThai ?? p.SubDistrictName ?? "",
+                    placeName: (p.placeName ?? p.PlaceName) ?? "",
+                    caption: (p.caption ?? p.Caption) ?? "",
+                    type: (p.type ?? p.Type) ?? "",
+                    price: (p.rentalFee ?? p.RentalFee ?? "") !== "" ? String(p.rentalFee ?? p.RentalFee ?? "") : "",
+                    capacity: (p.capacity ?? p.Capacity ?? "") !== "" ? String(p.capacity ?? p.Capacity ?? "") : "",
+                    roomSize: (p.roomSize ?? p.RoomSize ?? "") !== "" ? String(p.roomSize ?? p.RoomSize ?? "") : "",
+                    description: (p.description ?? p.Description) ?? "",
+                    // backend may return plain names like subDistrictName / districtName (your example)
+                    district: (p.districtName ?? p.DistrictName) ?? (p.subDistrictName ?? p.SubDistrictName) ?? (p.SubDistrict?.District?.NameInThai ?? p.SubDistrict?.DistrictName) ?? "",
+                    subdistrict: (p.subDistrictName ?? p.SubDistrictName) ?? (p.SubDistrict?.NameInThai ?? p.SubDistrictName ?? "") ?? "",
                     existingPhotos: pics,
                 });
             } catch (err) {
                 console.error(err);
+                setNotFound(true);
             } finally {
                 setLoadingInitial(false);
             }
