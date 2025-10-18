@@ -1,7 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import TopBar from "@/components/ui/TopBar";
-import EditProfile from "@/features/EditProfile";
+import EditProfile from "@/features/profile/EditProfile";
 
 export default function ProfilePage() {
   return (

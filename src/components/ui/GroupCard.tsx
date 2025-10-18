@@ -1,0 +1,161 @@
+import { getUser } from "@/api/getUser";
+import { useEffect, useState } from "react";
+
+// Types
+interface Member {
+  id: number;
+  name: string;
+}
+
+interface RentIn {
+  id: number;
+  name: string;
+}
+
+interface Hobby {
+  id: number;
+  name: string;
+}
+
+interface Group {
+  id: number;
+  name: string;
+  description: string;
+  hobbies: Hobby[];
+  members: Member[];
+  rent_in_id: number;
+  rent_in: RentIn;
+  max_members?: number;
+}
+
+interface SearchGroupResponse {
+  success: boolean;
+  message: string;
+  data: {
+    groups: Group[];
+    total: number;
+    page: number;
+    limit: number;
+  };
+}
+
+interface SearchFilters {
+  name?: string;
+  genderRestriction?: string;
+  hobbies?: string[];
+  rentInProperties?: string[];
+}
+
+export function GroupCard({ group }: { group: Group }) {
+  const maxMembers = group.max_members || 10;
+  const currentMembers = group.members?.length || 0;
+
+  const [profilePicUrl, setProfilePicUrl] = useState<string>("");
+  const [isRequesting, setIsRequesting] = useState(false);
+  const [requestError, setRequestError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const id = group.members && group.members.length > 0 ? String(group.members[0].id) : "1"; // Fallback ID
+    const fetchUserData = async () => {
+      try {
+        console.log("Fetching user data for ID:", id);
+        const userData = await getUser(id);
+        console.log("User data fetched successfully:", userData);
+        const userInfo = userData.Tenant.PersonalProfile;
+
+        if (userInfo.Pictures && userInfo.Pictures.length > 0) {
+          setProfilePicUrl(userInfo.Pictures[0].Link);
+        }
+
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+      }
+    };
+    fetchUserData();
+  }, [group.members]);
+
+  const handleRequestToJoin = async () => {
+    setIsRequesting(true);
+    setRequestError(null);
+
+    try {
+      const baseUrl = process.env.APP_ADDRESS || "http://localhost:8080";
+      const response = await fetch(`${baseUrl}/groupRequest/requests/groups/${group.id}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include", // Include cookies for authentication
+        // Add body if needed, for example:
+        // body: JSON.stringify({ message: "I would like to join your group" }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.message || `Failed to send request: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log("Join request sent successfully:", data);
+      
+      alert("Request to join sent successfully!");
+    } catch (error) {
+      console.error("Error sending join request:", error);
+      setRequestError(error instanceof Error ? error.message : "Failed to send request");
+      alert(`Failed to send join request: ${error instanceof Error ? error.message : "Please try again"}`);
+    } finally {
+      setIsRequesting(false);
+    }
+  };
+  
+  return (
+    <div className="bg-white rounded-lg shadow-md p-6 flex items-center gap-6">
+      <img
+        src={profilePicUrl || "/default_profile.png" }
+        alt={group.name}
+        className="w-24 h-24 rounded-lg object-cover flex-shrink-0"
+      />
+      
+      <div className="flex-1">
+        <div className="flex items-start justify-between mb-2">
+          <div>
+            <h3 className="text-xl font-semibold text-gray-900">{group.name}</h3>
+            <p className="text-sm text-gray-600">created by {group.members[0]?.name || "unknown"}</p>
+          </div>
+          <span className="text-gray-700 font-medium">
+            members: {currentMembers}/{maxMembers}
+          </span>
+        </div>
+        
+        <div className="flex flex-wrap gap-2">
+          {group.hobbies && group.hobbies.length > 0 ? (
+            group.hobbies.map((hobby) => (
+              <span
+                key={hobby.id}
+                className="px-4 py-2 bg-slate-500 text-white rounded-md text-sm"
+              >
+                {hobby.name}
+              </span>
+            ))
+          ) : (
+            <span className="px-4 py-2 bg-slate-500 text-white rounded-md text-sm">
+              No hobbies listed
+            </span>
+          )}
+        </div>
+      </div>
+
+      <button 
+        className={`px-6 py-3 rounded-lg font-medium transition flex-shrink-0 ${
+          isRequesting 
+            ? "bg-gray-300 text-gray-600 cursor-not-allowed" 
+            : "bg-amber-100 text-gray-800 hover:bg-amber-200"
+        }`}
+        onClick={handleRequestToJoin}
+        disabled={isRequesting}
+      >
+        {isRequesting ? "Sending..." : "Request to join"}
+      </button>
+    </div>
+  );
+}
