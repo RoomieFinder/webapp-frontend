@@ -412,7 +412,7 @@ export default function GroupManagementPage() {
                     ?.map((p) => p.placeName)
                     .join(", ")}
                 </span>
-                <Link href="/tenants/room">
+                <Link href={`/tenants/room?gid=${group.id}`}>
                   <Image
                     src="/pencil-edit.svg"
                     alt="Edit preferred rooms"
