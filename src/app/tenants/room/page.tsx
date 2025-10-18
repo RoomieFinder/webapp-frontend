@@ -1,9 +1,12 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import TopBar from "@/components/ui/TopBar";
 import Image from "next/image";
 import Button from "@/components/ui/Button";
+import ConfirmModal from "@/components/ui/ConfirmModal";
+import SuccessModal from "@/components/ui/SuccessModal";
 
 interface PreferredProperty {
     id: number;
@@ -17,120 +20,95 @@ export default function PreferredRoomPage() {
     const [items, setItems] = useState<PreferredProperty[]>([]);
     const [loading, setLoading] = useState(false);
     const [deletingId, setDeletingId] = useState<number | null>(null);
+    const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
+    const [showSuccess, setShowSuccess] = useState(false);
+    const [successMessage, setSuccessMessage] = useState("");
     const [bookingId, setBookingId] = useState<number | null>(null);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
-    const [manualGid, setManualGid] = useState<string>("");
-    const [lastUrl, setLastUrl] = useState<string | null>(null);
-    const [lastStatus, setLastStatus] = useState<number | null>(null);
-    const [lastResponse, setLastResponse] = useState<any>(null);
-    const [logs, setLogs] = useState<string[]>([]);
+
+    const router = useRouter();
 
     useEffect(() => {
         const search = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
         const q = search?.get("gid") || null;
-        // default to gid=1 when missing so page shows something for debugging
-        setGid(q || "1"); 
+        // use the gid provided by the previous page; do not force a default
+        setGid(q);
     }, []);
 
     useEffect(() => {
         if (!gid) return;
-        fetchPreferred();
+
+        const controller = new AbortController();
+        const signal = controller.signal;
+
+        async function doFetch() {
+            setLoading(true);
+            try {
+                const url = `http://localhost:8080/group/${gid}/preferred-property/`;
+                console.log('[preferred] fetching', url);
+                const res = await fetch(url, { method: 'GET', credentials: 'include', signal });
+                const data = await res.json();
+                if (res.ok) {
+                    setItems(data.data || []);
+                    setErrorMessage(null);
+                } else {
+                    console.error('Failed to fetch preferred:', data);
+                    setItems([]);
+                    setErrorMessage(data?.message || 'Failed to fetch preferred properties');
+                }
+            } catch (err: any) {
+                if (err.name === 'AbortError') {
+                    console.log('fetch aborted');
+                } else {
+                    console.error(err);
+                    setItems([]);
+                    setErrorMessage('Network error while fetching preferred properties');
+                }
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        doFetch();
+        return () => controller.abort();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [gid]);
 
-    function loadManualGid() {
-        if (!manualGid) return setErrorMessage("Please enter a group id");
-        setErrorMessage(null);
-        setGid(manualGid);
-    }
-
-    async function fetchPreferred() {
-        setLoading(true);
-        try {
-            const url = `http://localhost:8080/group/${gid}/preferred-property/`;
-            console.log('[preferred] fetching', url);
-            setLogs((s) => [...s, `[fetch] ${new Date().toISOString()} GET ${url}`]);
-            setLastUrl(url);
-            const res = await fetch(url, {
-                method: "GET",
-                credentials: "include",
-            });
-            const data = await res.json();
-            console.log('[preferred] fetch result', res.status, data);
-            setLastStatus(res.status);
-            setLastResponse(data);
-            setLogs((s) => [...s, `[resp] ${new Date().toISOString()} ${res.status} ${JSON.stringify(data).slice(0, 200)}`]);
-            if (res.ok) {
-                setItems(data.data || []);
-                setErrorMessage(null);
-            } else {
-                const msg = data?.message || "Failed to fetch preferred properties";
-                console.error("Failed to fetch preferred:", data);
-                setItems([]);
-                setErrorMessage(msg);
-            }
-        } catch (err) {
-            console.error(err);
-            setItems([]);
-            setErrorMessage("Network error while fetching preferred properties");
-        } finally {
-            setLoading(false);
-        }
-    }
+    // fetchPreferred logic inlined into effect (uses AbortController)
 
     async function handleDelete(pid: number) {
         if (!gid) return alert("Group ID missing");
-        if (!confirm("Remove this preferred property?")) return;
         setDeletingId(pid);
         try {
             const delUrl = `http://localhost:8080/group/${gid}/preferred-property/${pid}`;
             console.log('[preferred] deleting', delUrl);
-            setLogs((s) => [...s, `[delete] ${new Date().toISOString()} DELETE ${delUrl}`]);
-            setLastUrl(delUrl);
             const res = await fetch(delUrl, {
                 method: "DELETE",
                 credentials: "include",
             });
             const data = await res.json();
-            setLastStatus(res.status);
-            setLastResponse(data);
-            setLogs((s) => [...s, `[resp] ${new Date().toISOString()} ${res.status} ${JSON.stringify(data).slice(0, 200)}`]);
+            console.log('[preferred] delete result', res.status, data);
             if (res.ok) setItems((s) => s.filter((p) => p.id !== pid));
             else alert(data.message || "Failed to remove preferred property");
+            if (res.ok) {
+                setSuccessMessage("Property removed from preferred list.");
+                setShowSuccess(true);
+            }
         } catch (err) {
             console.error(err);
             alert("Network error while removing preferred property");
         } finally {
             setDeletingId(null);
+            setPendingDeleteId(null);
         }
     }
 
-    async function handleBook(pid: number) {
-        if (bookingId === pid) return;
-        setBookingId(pid);
-        try {
-            const bookUrl = `http://localhost:8080/group/booking/request/${pid}`;
-            setLogs((s) => [...s, `[book] ${new Date().toISOString()} POST ${bookUrl}`]);
-            setLastUrl(bookUrl);
-            const res = await fetch(bookUrl, {
-                method: "POST",
-                credentials: "include",
-            });
-            const bookData = await res.json();
-            setLastStatus(res.status);
-            setLastResponse(bookData);
-            setLogs((s) => [...s, `[resp] ${new Date().toISOString()} ${res.status} ${JSON.stringify(bookData).slice(0, 200)}`]);
-            if (!res.ok) {
-                alert(bookData.message || "Booking failed");
-                return;
-            }
-            alert("Booking request sent! Pending approval.");
-        } catch (err) {
-            console.error(err);
-            alert("Network error while booking");
-        } finally {
-            setBookingId(null);
-        }
+    function handleBook(pid: number) {
+        // navigate to booking page and include pid and gid in query
+        const q = new URLSearchParams();
+        q.set("pid", String(pid));
+        if (gid) q.set("gid", gid);
+        router.push(`/tenants/booking?${q.toString()}`);
     }
 
     return (
@@ -183,11 +161,10 @@ export default function PreferredRoomPage() {
                                     {/* Actions: trash icon and Book button aligned to the right */}
                                     <div className="flex flex-col items-end gap-3">
                                         <button
-                                            onClick={() => handleDelete(prop.id)}
+                                            onClick={() => setPendingDeleteId(prop.id)}
                                             aria-label="Remove preferred"
                                             className="p-2 rounded-md border border-gray-200 hover:bg-gray-50 bg-white"
                                             disabled={deletingId === prop.id}
-                                            title="Remove preferred"
                                         >
                                             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-1 12a2 2 0 01-2 2H8a2 2 0 01-2-2L5 7m5 4v6m4-6v6M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3" />
@@ -204,6 +181,21 @@ export default function PreferredRoomPage() {
                                     </div>
                                 </div>
                             ))}
+
+                            <ConfirmModal
+                                open={!!pendingDeleteId}
+                                title="Remove preferred property"
+                                message="Are you sure you want to remove this property from preferred list?"
+                                confirmText="Remove"
+                                cancelText="Cancel"
+                                onConfirm={() => pendingDeleteId && handleDelete(pendingDeleteId)}
+                                onCancel={() => setPendingDeleteId(null)}
+                            />
+                            <SuccessModal
+                                open={showSuccess}
+                                message={successMessage}
+                                onConfirm={() => setShowSuccess(false)}
+                            />
                         </div>
                     </div>
                 </div>
