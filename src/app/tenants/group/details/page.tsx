@@ -317,8 +317,8 @@ export default function GroupManagementPage() {
                             ? "Head of group (You)"
                             : "Head of group"
                           : m.id === myTenantId
-                          ? "(You)"
-                          : ""}
+                            ? "(You)"
+                            : ""}
                       </p>
                     </div>
                   </div>
