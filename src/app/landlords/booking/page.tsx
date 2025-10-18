@@ -3,6 +3,7 @@
 import TopBar from "@/components/ui/TopBar";
 import Image from "next/image";
 import { useEffect, useState } from "react";
+import { apiServices } from '@/api/apiServices';
 
 type PropertyPicture = {
   ID: number;
@@ -60,32 +61,10 @@ export default function LandlordDashboardPage() {
   const [expandedGroup, setExpandedGroup] = useState<number | null>(null);
   const [properties, setProperties] = useState<Property[]>([]);
 
-  const getMe = async () => {
-    try {
-      const res = await fetch("http://localhost:8080/auth/me", {
-        method: "GET",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-      });
-
-      const json = await res.json();
-      if (json.success) {
-        setUser(json.data);
-        return json.data;
-      } else {
-        console.error("Failed to get current user");
-        return null;
-      }
-    } catch (err) {
-      console.error("Error fetching current user:", err);
-      return null;
-    }
-  };
-
   // Fetch booking requests
   useEffect(() => {
     async function fetchRequests() {
-      const me = await getMe();
+      const me = await apiServices.getMe();
       if (!me?.Landlord?.ID) return;
 
       const lid = me.Landlord.ID;

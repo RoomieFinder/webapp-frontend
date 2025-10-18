@@ -67,7 +67,11 @@ export default function LoginPanel({
         setMessage("Login success");
         router.push("/role");
       } else {
-        setMessage("Login failed: " + (data.message || ""));
+        if(data.message == null){
+          setMessage("Login failed: Password do not match");
+        }else{
+          setMessage("Login failed: " + (data.message || ""));
+        }
       }
     } catch (err) {
       console.error(err);
