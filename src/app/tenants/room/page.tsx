@@ -96,57 +96,60 @@ export default function PreferredRoomPage() {
 
     return (
         <div className="min-h-screen w-full">
-            <div className="bg-[#192A46] flex flex-col">
+            <div className="bg-[#192A46] flex flex-col min-h-screen">
                 <div className="w-full px-4">
                     <TopBar pageName="Group Management" />
                 </div>
 
-                <div className="flex-1 p-6">
-                    <div className="max-w-5xl mx-auto bg-white rounded-2xl p-6">
-                        <h2 className="text-xl font-mono mb-4">Preferred Room</h2>
+                <div className="flex-1 p-8">
+                    {/* White panel that contains all cards */}
+                    <div className="bg-white shadow p-6 border border-gray-100" style={{ margin: '10px 15px 0 80px', borderRadius: '6px' }}>
+                        <h2 className="text-2xl font-mono mb-2 text-black">Preferred Room</h2>
+                        <div className="h-px bg-gray-200 mb-6" />
 
-                        <div className="mb-4">
-                            <label className="block text-sm text-gray-600">Group ID (from query)</label>
-                            <div className="mt-1 text-sm text-gray-800">{gid ?? "No gid provided — use ?gid=GROUP_ID in URL"}</div>
-                        </div>
-
-                        <div className="space-y-4">
-                            {loading && <p>Loading...</p>}
+                        <div className="space-y-6">
+                            {loading && <p className="py-6">Loading...</p>}
 
                             {!loading && items.length === 0 && (
-                                <p className="text-gray-600">No preferred properties found.</p>
+                                <div className="bg-white rounded-xl shadow p-6">
+                                    <p className="text-gray-600">No preferred properties found.</p>
+                                </div>
                             )}
 
                             {items.map((prop) => (
-                                <div key={prop.id} className="flex items-start gap-4 bg-white rounded-xl shadow p-4">
-                                    <div className="w-36 h-24 relative rounded-lg overflow-hidden bg-gray-100">
+                                <div key={prop.id} className="bg-white rounded-xl shadow p-4 flex gap-6 items-start w-full">
+                                    {/* Thumbnail on the left */}
+                                    <div className="w-36 h-28 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100 shadow-sm">
                                         {prop.pictures && prop.pictures.length > 0 ? (
-                                            <Image src={prop.pictures[0]} alt={prop.name} fill className="object-cover" />
+                                            <Image src={prop.pictures[0]} alt={prop.name} width={160} height={112} className="object-cover" />
                                         ) : (
                                             <div className="w-full h-full flex items-center justify-center text-sm text-gray-500">No Image</div>
                                         )}
                                     </div>
 
-                                    <div className="flex-1">
-                                        <h3 className="text-lg font-semibold">{prop.name}</h3>
-                                        <p className="text-sm text-gray-500 line-clamp-4">{prop.description}</p>
+                                    {/* Info */}
+                                    <div className="flex-1 pr-8">
+                                        <h3 className="text-lg font-mono font-semibold mb-1 text-black">{prop.name}</h3>
+                                        <p className="text-sm font-mono text-gray-600">{prop.description}</p>
                                     </div>
 
-                                    <div className="flex flex-col items-end gap-2">
+                                    {/* Actions: trash icon and Book button aligned to the right */}
+                                    <div className="flex flex-col items-end gap-3">
                                         <button
                                             onClick={() => handleDelete(prop.id)}
                                             aria-label="Remove preferred"
-                                            className="p-2 rounded-md border border-gray-200 hover:bg-gray-50"
+                                            className="p-2 rounded-md border border-gray-200 hover:bg-gray-50 bg-white"
                                             disabled={deletingId === prop.id}
+                                            title="Remove preferred"
                                         >
-                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-1 12a2 2 0 01-2 2H8a2 2 0 01-2-2L5 7m5 4v6m4-6v6M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3" />
                                             </svg>
                                         </button>
 
                                         <Button
                                             onClick={() => handleBook(prop.id)}
-                                            className="w-24"
+                                            className="w-24 bg-[#E6DFC9] text-black hover:bg-[#e6dfc8]"
                                             disabled={bookingId === prop.id}
                                         >
                                             {bookingId === prop.id ? "Pending..." : "Book"}
