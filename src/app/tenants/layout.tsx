@@ -12,7 +12,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     { text: "Explore", path: "/tenants",icon: <ExploreIcon/> },
     { text: "Profile", path: "/tenants/profile", icon: <ProfileIcon /> },
     { text: "Booking", path: "/tenants/booking", icon: <FindRoommateIcon /> },
-    { text: "Create Party", path: "/tenants/group", icon: <CreatePartyIcon /> },
+    { text: "Group", path: "/tenants/group", icon: <CreatePartyIcon /> },
     { text: "Payment", path: "/tenants/payment", icon: <PaymentIcon /> },
   ];
 

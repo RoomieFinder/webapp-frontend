@@ -26,6 +26,9 @@ interface Group {
   rent_in_id: number;
   rent_in: RentIn;
   max_members?: number;
+  group_picture?: string;
+  created_by?: string;
+  is_visible?: number;
 }
 
 interface SearchGroupResponse {
@@ -53,26 +56,6 @@ export function GroupCard({ group }: { group: Group }) {
   const [profilePicUrl, setProfilePicUrl] = useState<string>("");
   const [isRequesting, setIsRequesting] = useState(false);
   const [requestError, setRequestError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const id = group.members && group.members.length > 0 ? String(group.members[0].id) : "1"; // Fallback ID
-    const fetchUserData = async () => {
-      try {
-        console.log("Fetching user data for ID:", id);
-        const userData = await getUser(id);
-        console.log("User data fetched successfully:", userData);
-        const userInfo = userData.Tenant.PersonalProfile;
-
-        if (userInfo.Pictures && userInfo.Pictures.length > 0) {
-          setProfilePicUrl(userInfo.Pictures[0].Link);
-        }
-
-      } catch (error) {
-        console.error("Error fetching user data:", error);
-      }
-    };
-    fetchUserData();
-  }, []);
 
   const handleRequestToJoin = async () => {
     setIsRequesting(true);
@@ -111,7 +94,7 @@ export function GroupCard({ group }: { group: Group }) {
   return (
     <div className="bg-white rounded-lg shadow-md p-6 flex items-center gap-6">
       <img
-        src={profilePicUrl || "/default_profile.png" }
+        src={group.group_picture || "/default_profile.png"}
         alt={group.name}
         className="w-24 h-24 rounded-lg object-cover flex-shrink-0"
       />

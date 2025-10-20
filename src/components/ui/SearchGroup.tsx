@@ -32,6 +32,8 @@ interface Group {
   rent_in: RentIn;
   max_members?: number;
   created_by?: string;
+  is_visible?: number;
+  group_picture?: string;
 }
 
 interface SearchGroupResponse {
@@ -214,14 +216,14 @@ export default function SearchGroup() {
                 >
                     <option value="">Select hobbies</option>
 
-                    {allHobbies.map((hobby) => (
-                    <option
-                        key={hobby.ID || hobby.id || hobby._id || hobby.Name || hobby.name}
-                        value={hobby.Name || hobby.name}
-                    >
-                        {hobby.Name || hobby.name}
-                    </option>
-                    ))}
+          {allHobbies.map((hobby) => (
+          <option
+            key={hobby.id}
+            value={hobby.name}
+          >
+            {hobby.name}
+          </option>
+          ))}
                 </select>
               </div>
               
@@ -299,14 +301,16 @@ export default function SearchGroup() {
         )}
         
         <div className="space-y-4">
-          {groups.map((group) => (
-            <Link href={`/tenants/group/${group.id}`} key={group.id} className="block"
-                  onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
-                  onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
-                >
-              <GroupCard group={group} />
-            </Link>
-          ))}
+          {groups
+            .filter((group) => group.is_visible === 1)
+            .map((group) => (
+              <Link href={`/tenants/group/${group.id}`} key={group.id} className="block"
+                    onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
+                    onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                  >
+                <GroupCard group={group} />
+              </Link>
+            ))}
         </div>
       </div>
     </div>
