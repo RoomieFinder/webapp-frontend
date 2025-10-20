@@ -214,7 +214,7 @@ export default function ViewGroup({ gid }: { gid: number }) {
                       alt={m.name || `User ${m.userId}`}
                       width={84}
                       height={84}
-                      className="rounded-full border border-gray-300"
+                      className="rounded-full border border-gray-300 w-21 h-21"
                     />
                     <div>
                       <p className="text-lg font-medium">{m.name}</p>

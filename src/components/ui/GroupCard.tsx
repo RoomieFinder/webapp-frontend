@@ -129,12 +129,16 @@ export function GroupCard({ group }: { group: Group }) {
       </div>
 
       <button 
-        className={`px-6 py-3 rounded-lg font-medium transition flex-shrink-0 ${
-          isRequesting 
+        className={`px-6 py-3 rounded-lg font-medium transition flex-shrink-0
+          ${isRequesting 
             ? "bg-gray-300 text-gray-600 cursor-not-allowed" 
             : "bg-amber-100 text-gray-800 hover:bg-amber-200"
         }`}
-        onClick={handleRequestToJoin}
+        onClick={(e) => {
+          e.preventDefault(); // Prevents link navigation
+          e.stopPropagation(); // Stops event from bubbling to parent Link
+          handleRequestToJoin();
+        }}
         disabled={isRequesting}
       >
         {isRequesting ? "Sending..." : "Request to join"}

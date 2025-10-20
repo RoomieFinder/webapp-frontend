@@ -307,7 +307,7 @@ export default function SearchGroup() {
               <Link href={`/tenants/group/${group.id}`} key={group.id} className="block"
                     onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
                     onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
-                  >
+              >
                 <GroupCard group={group} />
               </Link>
             ))}
