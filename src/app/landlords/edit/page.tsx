@@ -37,17 +37,38 @@ export default function EditPostPage() {
                 }
 
                 // tolerant picture extraction (handles string arrays and object arrays, different casing)
-                let pics: { id: number; url: string }[] = [];
+                // prefer numeric IDs when backend returns `pictureIds` alongside `pictures`
+                let pics: { id?: number; url: string }[] = [];
+                const pictureIdsAny = p.pictureIds ?? p.PictureIds ?? p.PictureIDs ?? p.pictureIDs;
                 if (Array.isArray(p.pictures)) {
-                    pics = p.pictures.map((u: any, i: number) => ({ id: i, url: typeof u === "string" ? u : (u.url ?? u.URL ?? "") }));
+                    if (Array.isArray(pictureIdsAny) && pictureIdsAny.length === p.pictures.length) {
+                        pics = p.pictures.map((u: any, i: number) => ({ id: pictureIdsAny[i], url: typeof u === "string" ? u : (u.url ?? u.URL ?? "") }));
+                    } else {
+                        pics = p.pictures.map((u: any) => ({ url: typeof u === "string" ? u : (u.url ?? u.URL ?? "") }));
+                    }
                 } else if (Array.isArray(p.Pictures)) {
-                    pics = p.Pictures.map((x: any, i: number) => ({ id: x.ID ?? x.id ?? i, url: x.URL ?? x.url ?? x.Path ?? x.path ?? "" }));
+                    const idsAny = p.PictureIds ?? p.pictureIds ?? p.PictureIDs ?? p.pictureIDs;
+                    if (Array.isArray(idsAny) && idsAny.length === p.Pictures.length) {
+                        pics = p.Pictures.map((x: any, i: number) => ({ id: idsAny[i] ?? x.ID ?? x.id, url: x.URL ?? x.url ?? x.Path ?? x.path ?? "" }));
+                    } else {
+                        pics = p.Pictures.map((x: any) => ({ id: x.ID ?? x.id, url: x.URL ?? x.url ?? x.Path ?? x.path ?? "" }));
+                    }
                 } else if (Array.isArray(p.PicturesUrls)) {
-                    pics = p.PicturesUrls.map((u: any, i: number) => ({ id: i, url: typeof u === "string" ? u : (u.url ?? u) }));
+                    pics = p.PicturesUrls.map((u: any) => ({ url: typeof u === "string" ? u : (u.url ?? u) }));
                 } else if (Array.isArray(p.Images)) {
-                    pics = p.Images.map((x: any, i: number) => ({ id: x.ID ?? x.id ?? i, url: x.URL ?? x.url ?? x }));
+                    const idsAny = p.imageIds ?? p.ImageIds ?? p.ImageIDs ?? p.imageIDs;
+                    if (Array.isArray(idsAny) && idsAny.length === p.Images.length) {
+                        pics = p.Images.map((x: any, i: number) => ({ id: idsAny[i] ?? x.ID ?? x.id, url: x.URL ?? x.url ?? x }));
+                    } else {
+                        pics = p.Images.map((x: any) => ({ id: x.ID ?? x.id, url: x.URL ?? x.url ?? x }));
+                    }
                 } else if (Array.isArray(p.Photos)) {
-                    pics = p.Photos.map((x: any, i: number) => ({ id: x.ID ?? x.id ?? i, url: x.URL ?? x.url ?? x }));
+                    const idsAny = p.photoIds ?? p.PhotoIds ?? p.PhotoIDs ?? p.photoIDs;
+                    if (Array.isArray(idsAny) && idsAny.length === p.Photos.length) {
+                        pics = p.Photos.map((x: any, i: number) => ({ id: idsAny[i] ?? x.ID ?? x.id, url: x.URL ?? x.url ?? x }));
+                    } else {
+                        pics = p.Photos.map((x: any) => ({ id: x.ID ?? x.id, url: x.URL ?? x.url ?? x }));
+                    }
                 }
 
                 // build initial values tolerant to key casing and alternate field names
@@ -134,17 +155,37 @@ export default function EditPostPage() {
                     const j = await refetch.json();
                     const p = j.property ?? j;
                     // tolerant picture extraction (same logic as initial load)
-                    let pics: { id: number; url: string }[] = [];
+                    let pics: { id?: number; url: string }[] = [];
+                    const pictureIdsAny = p.pictureIds ?? p.PictureIds ?? p.PictureIDs ?? p.pictureIDs;
                     if (Array.isArray(p.pictures)) {
-                        pics = p.pictures.map((u: any, i: number) => ({ id: i, url: typeof u === "string" ? u : (u.url ?? u.URL ?? "") }));
+                        if (Array.isArray(pictureIdsAny) && pictureIdsAny.length === p.pictures.length) {
+                            pics = p.pictures.map((u: any, i: number) => ({ id: pictureIdsAny[i], url: typeof u === "string" ? u : (u.url ?? u.URL ?? "") }));
+                        } else {
+                            pics = p.pictures.map((u: any) => ({ url: typeof u === "string" ? u : (u.url ?? u.URL ?? "") }));
+                        }
                     } else if (Array.isArray(p.Pictures)) {
-                        pics = p.Pictures.map((x: any, i: number) => ({ id: x.ID ?? x.id ?? i, url: x.URL ?? x.url ?? x.Path ?? x.path ?? "" }));
+                        const idsAny = p.PictureIds ?? p.pictureIds ?? p.PictureIDs ?? p.pictureIDs;
+                        if (Array.isArray(idsAny) && idsAny.length === p.Pictures.length) {
+                            pics = p.Pictures.map((x: any, i: number) => ({ id: idsAny[i] ?? x.ID ?? x.id, url: x.URL ?? x.url ?? x.Path ?? x.path ?? "" }));
+                        } else {
+                            pics = p.Pictures.map((x: any) => ({ id: x.ID ?? x.id, url: x.URL ?? x.url ?? x.Path ?? x.path ?? "" }));
+                        }
                     } else if (Array.isArray(p.PicturesUrls)) {
-                        pics = p.PicturesUrls.map((u: any, i: number) => ({ id: i, url: typeof u === "string" ? u : (u.url ?? u) }));
+                        pics = p.PicturesUrls.map((u: any) => ({ url: typeof u === "string" ? u : (u.url ?? u) }));
                     } else if (Array.isArray(p.Images)) {
-                        pics = p.Images.map((x: any, i: number) => ({ id: x.ID ?? x.id ?? i, url: x.URL ?? x.url ?? x }));
+                        const idsAny = p.imageIds ?? p.ImageIds ?? p.ImageIDs ?? p.imageIDs;
+                        if (Array.isArray(idsAny) && idsAny.length === p.Images.length) {
+                            pics = p.Images.map((x: any, i: number) => ({ id: idsAny[i] ?? x.ID ?? x.id, url: x.URL ?? x.url ?? x }));
+                        } else {
+                            pics = p.Images.map((x: any) => ({ id: x.ID ?? x.id, url: x.URL ?? x.url ?? x }));
+                        }
                     } else if (Array.isArray(p.Photos)) {
-                        pics = p.Photos.map((x: any, i: number) => ({ id: x.ID ?? x.id ?? i, url: x.URL ?? x.url ?? x }));
+                        const idsAny = p.photoIds ?? p.PhotoIds ?? p.PhotoIDs ?? p.photoIDs;
+                        if (Array.isArray(idsAny) && idsAny.length === p.Photos.length) {
+                            pics = p.Photos.map((x: any, i: number) => ({ id: idsAny[i] ?? x.ID ?? x.id, url: x.URL ?? x.url ?? x }));
+                        } else {
+                            pics = p.Photos.map((x: any) => ({ id: x.ID ?? x.id, url: x.URL ?? x.url ?? x }));
+                        }
                     }
 
                     setInitialValues({
