@@ -33,7 +33,6 @@ interface Group {
   max_members?: number;
   created_by?: string;
   is_visible?: number;
-  group_picture?: string;
 }
 
 interface SearchGroupResponse {
@@ -216,14 +215,14 @@ export default function SearchGroup() {
                 >
                     <option value="">Select hobbies</option>
 
-          {allHobbies.map((hobby) => (
-          <option
-            key={hobby.id}
-            value={hobby.name}
-          >
-            {hobby.name}
-          </option>
-          ))}
+                    {allHobbies.map((hobby) => (
+                    <option
+                        key={hobby.ID || hobby.id || hobby._id || hobby.Name || hobby.name}
+                        value={hobby.Name || hobby.name}
+                    >
+                        {hobby.Name || hobby.name}
+                    </option>
+                    ))}
                 </select>
               </div>
               
