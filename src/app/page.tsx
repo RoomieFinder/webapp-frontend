@@ -5,6 +5,8 @@ import LoginForm from "@/features/auth/LoginForm";
 import RegisterForm from "@/features/auth/RegisterForm";
 import Panel from "../components/ui/Panel";
 import Button from "@/components/ui/Button";
+import { Cookie } from "lucide-react";
+import CookieConsent from "@/components/ui/Cookie";
 
 export default function HomePage() {
   const [panelOpen, setPanelOpen] = useState(false);
@@ -32,6 +34,9 @@ export default function HomePage() {
         <Button className="w-60 h-15 cursor-pointer text-xl" onClick={() => { setPanelOpen(true); setShowRegister(false); }}>
           Get Started!
         </Button>
+        <div>
+          <CookieConsent />
+        </div>
       </div>
 
       {/* Sliding Panel */}
