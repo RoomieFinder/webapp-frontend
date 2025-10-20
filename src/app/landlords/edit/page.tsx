@@ -17,7 +17,11 @@ export default function EditPostPage() {
         if (!pid) { setLoadingInitial(false); return; }
         (async () => {
             try {
-                const res = await fetch(`http://localhost:8080/property/${pid}`);
+                const res = await fetch(`http://localhost:8080/property/${pid}`, {
+                    method: "GET",
+                    credentials: "include",
+                    headers: { "Content-Type": "application/json" },
+                });
                 if (!res.ok) {
                     if (res.status === 404) setNotFound(true);
                     setLoadingInitial(false);
