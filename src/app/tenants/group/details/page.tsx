@@ -378,10 +378,10 @@ export default function GroupManagementPage() {
           {/* ขวา - RentIn */}
           <section className="w-3/5 bg-white rounded-lg shadow-lg p-6">
             <div className="mx-5 my-4">
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center mb-4">
                 <h3 className="text-3xl font-semibold">Group Details</h3>
                 {myTenantId === group.leaderId && (
-                  <div className="ml-4">
+                  <div className="ml-3">
                     <button
                       aria-label="Toggle visibility"
                       disabled={visLoading}
