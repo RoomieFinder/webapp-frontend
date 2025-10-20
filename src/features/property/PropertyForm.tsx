@@ -13,7 +13,8 @@ export type FormValues = {
     roomSize: string;
     description: string;
     // existingPhotos can be passed in initialValues (not sent to backend directly)
-    existingPhotos?: { id: number; url: string }[];
+    // id is optional because some backends return plain URL strings without numeric ids
+    existingPhotos?: { id?: number; url: string }[];
 };
 
 type DistrictOpt = { ID: number; NameInThai: string; ProvinceID?: number };
@@ -21,13 +22,17 @@ type SubdistrictOpt = { ID: number; NameInThai: string; DistrictID: number };
 
 type SubmitResult = { ok: boolean; message?: string };
 // now submit handler receives deletedPictureIDs as third arg (for edit)
-type SubmitHandler = (values: FormValues, photos: File[], deletedPictureIDs?: number[]) => Promise<SubmitResult>;
+type SubmitHandler = (values: FormValues, photos: File[], deletedPictureIDs?: number[], deletedPictureURLs?: string[]) => Promise<SubmitResult>;
 
 /**
  * Hook that contains all form state + location autocomplete logic.
  * Accept optional initialValues and optional submitHandler (create or update).
  */
-export function usePropertyForm(initialValues: Partial<FormValues> = {}, submitHandler?: SubmitHandler) {
+export function usePropertyForm(
+    initialValues: Partial<FormValues> = {},
+    submitHandler?: SubmitHandler,
+    options?: { resetOnSuccess?: boolean }
+) {
     const [formData, setFormData] = useState<FormValues>({
         placeName: initialValues.placeName || "",
         caption: initialValues.caption || "",
@@ -42,8 +47,9 @@ export function usePropertyForm(initialValues: Partial<FormValues> = {}, submitH
     });
 
     const [photos, setPhotos] = useState<File[]>([]);
-    const [existingPhotos, setExistingPhotos] = useState<{ id: number; url: string }[]>(initialValues.existingPhotos || []);
+    const [existingPhotos, setExistingPhotos] = useState<{ id?: number; url: string }[]>(initialValues.existingPhotos || []);
     const [deletedPictureIDs, setDeletedPictureIDs] = useState<number[]>([]);
+    const [deletedPictureURLs, setDeletedPictureURLs] = useState<string[]>([]);
 
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState<string>("");
@@ -328,10 +334,11 @@ export function usePropertyForm(initialValues: Partial<FormValues> = {}, submitH
         setMessage("");
         setLoading(true);
         const handler = submitHandler ?? defaultSubmit;
-        // pass deletedPictureIDs to submit handler so edit can send them to backend
-        const res = await handler(formData, photos, deletedPictureIDs);
+        // pass deletedPictureIDs and deletedPictureURLs to submit handler so edit can send them to backend
+        const res = await handler(formData, photos, deletedPictureIDs, deletedPictureURLs);
         setLoading(false);
         setMessage(res.ok ? (res.message || "Success") : (res.message || "Failed"));
+        const shouldReset = options?.resetOnSuccess ?? true;
         if (res.ok) {
             setFormData({
                 placeName: "",
@@ -345,16 +352,18 @@ export function usePropertyForm(initialValues: Partial<FormValues> = {}, submitH
                 description: "",
                 existingPhotos: [],
             });
-            setPhotos([]);
-            setExistingPhotos([]);
-            setDistrictQuery("");
-            setDistrictOptions([]);
-            setSubdistrictQuery("");
-            setSubdistrictOptions([]);
-            setSelectedDistrictID(null);
-            setDistrictHighlightIndex(-1);
-            setSubdistrictHighlightIndex(-1);
-            setDeletedPictureIDs([]);
+            if (shouldReset) {
+                setPhotos([]);
+                setExistingPhotos([]);
+                setDistrictQuery("");
+                setDistrictOptions([]);
+                setSubdistrictQuery("");
+                setSubdistrictOptions([]);
+                setSelectedDistrictID(null);
+                setDistrictHighlightIndex(-1);
+                setSubdistrictHighlightIndex(-1);
+                setDeletedPictureIDs([]);
+            }
         }
         return res;
     }
@@ -368,7 +377,9 @@ export function usePropertyForm(initialValues: Partial<FormValues> = {}, submitH
         existingPhotos,
         setExistingPhotos,
         deletedPictureIDs,
+        deletedPictureURLs,
         setDeletedPictureIDs,
+        setDeletedPictureURLs,
         loading,
         message,
         // location/autocomplete state & handlers
@@ -446,7 +457,9 @@ export function PropertyFormBody({ form }: { form: ReturnType<typeof useProperty
         existingPhotos,
         setExistingPhotos,
         deletedPictureIDs,
+        deletedPictureURLs,
         setDeletedPictureIDs,
+        setDeletedPictureURLs,
         handleChange,
         handleFileChange,
         handleDrop,
@@ -477,9 +490,12 @@ export function PropertyFormBody({ form }: { form: ReturnType<typeof useProperty
         selectSubdistrict,
     } = form;
 
-    const removeExistingPhoto = (id: number) => {
-        setExistingPhotos((prev) => prev.filter((p) => p.id !== id));
-        setDeletedPictureIDs((prev) => [...prev, id]);
+    const removeExistingPhoto = (id?: number, url?: string) => {
+        // record URL if provided
+        if (url && url.trim() !== "") setDeletedPictureURLs((prev) => [...prev, url]);
+        // record numeric id if provided
+        if (typeof id === "number" && id > 0) setDeletedPictureIDs((prev) => [...prev, id]);
+        setExistingPhotos((prev) => prev.filter((p) => !(p.id === id && p.url === url)));
     };
 
     // keep highlighted option scrolled into view for keyboard navigation
@@ -537,7 +553,7 @@ export function PropertyFormBody({ form }: { form: ReturnType<typeof useProperty
                             .map((p) => (
                                 <div key={p.id} className="relative w-28 h-28 bg-white rounded-lg overflow-hidden flex items-center justify-center shadow">
                                     <img src={p.url || undefined} alt="existing" className="object-cover w-full h-full" />
-                                    <button type="button" onClick={() => removeExistingPhoto(p.id)} className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-600">×</button>
+                                    <button type="button" onClick={() => removeExistingPhoto(p.id, p.url)} className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-600">×</button>
                                 </div>
                             ))}
                     </div>
