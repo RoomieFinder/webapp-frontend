@@ -1,10 +1,246 @@
-import GroupOptionBox from "@/components/ui/GroupOptionBox";
-import TopBar from "@/components/ui/TopBar";
-import EditProfile from "@/features/profile/EditProfile";
-import { AlertTriangle } from "lucide-react";
+"use client";
 
-export default function ProfilePage() {
-  return (
+import TopBar from "@/components/ui/TopBar";
+import Image from "next/image";
+import { useEffect, useState } from "react";
+import { apiServices } from "@/api/apiServices";
+import Button from "@/components/ui/Button";
+import ConfirmModal from "@/components/ui/ConfirmModal";
+import { formatDate, formatDateThai } from "@/utils/formatDate";
+import SuccessModal from "@/components/ui/SuccessModal";
+import Link from "next/link";
+import { AlertTriangle } from "lucide-react";
+import GroupOptionBox from "@/components/ui/GroupOptionBox";
+
+interface Member {
+  id: number;
+  userId: number;
+  role: string;
+  personalPicture?: string | null;
+  name?: string;
+}
+
+interface Properties {
+  id: number;
+  placeName: string;
+}
+
+interface RentIn {
+  id: number;
+  placeName: string;
+  caption: string;
+  type: string;
+  address: string;
+  description: string;
+  rentalFee: number;
+  capacity: number;
+  roomSize: number;
+}
+
+interface Group {
+  id: number;
+  name: string;
+  description: string;
+  createdAt: string;
+  hobbies: string[];
+  members: Member[];
+  rentIn: RentIn;
+  preferredProperties: Properties[];
+  leaderId: number;
+  visibility: number;
+}
+
+export default function GroupManagementPage() {
+  const [myTenantId, setMyTenantId] = useState<number | null>(null);
+
+  const [loading, setLoading] = useState(true);
+  const [hasGroup, setHasGroup] = useState<boolean | null>(null);
+  const [group, setGroup] = useState<Group | null>(null);
+
+  // สำหรับ dropdown ของสมาชิกแต่ละคน
+  const [openMenuId, setOpenMenuId] = useState<number | null>(null);
+
+  const [showConfirm, setShowConfirm] = useState<null | "delete" | "leave">(
+    null
+  );
+
+  const [memberAction, setMemberAction] = useState<{
+    type: "kick" | "promote";
+    memberId: number;
+  } | null>(null);
+
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+
+  useEffect(() => {
+    if (myTenantId) {
+      fetchGroup();
+    }
+  }, [myTenantId]);
+
+  useEffect(() => {
+    async function init() {
+      try {
+        const me = await apiServices.getMe();
+        if (!me) return;
+
+        setMyTenantId(me.Tenant.ID);
+        // เรียก fetchGroup หลังจากได้ Tenant ID
+        fetchGroup();
+      } catch (err) {
+        console.error("Error fetching current user:", err);
+      }
+    }
+
+    init();
+  }, []);
+
+  const fetchGroup = async () => {
+    setLoading(true);
+    try {
+      const me = await apiServices.getMe();
+      const gid = me.Tenant?.GroupID;
+
+      if (!gid) {
+        setHasGroup(false);
+        setGroup(null);
+      } else {
+        const groupData = await apiServices.getGroup(gid);
+        if (!groupData) return;
+
+        const g = groupData;
+        const sortedMembers = (g.Members || [])
+          .map((m: any) => ({
+            id: m.ID,
+            userId: m.UserID,
+            role: m.UserID === g.Leader ? "Leader" : "Member",
+            name: m.Name || `User ${m.UserID}`,
+            personalPicture: m.PersonalProfile.Pictures?.[0]?.Link,
+          }))
+          .sort((a: { userId: number }, b: { userId: number }) =>
+            a.userId === g.Leader ? -1 : b.userId === g.Leader ? 1 : 0
+          );
+
+        const mappedGroup: Group = {
+          id: g.ID,
+          name: g.Name,
+          description: g.Description,
+          createdAt: g.CreatedAt,
+          hobbies: g.Hobbies || [],
+          members: sortedMembers,
+          rentIn: {
+            id: g.RentIn?.ID || 0,
+            placeName: g.RentIn?.PlaceName || "",
+            caption: g.RentIn?.Caption || "",
+            type: g.RentIn?.Type || "",
+            address: g.RentIn?.Address || "",
+            description: g.RentIn?.Description || "",
+            rentalFee: g.RentIn?.RentalFee || 0,
+            capacity: g.RentIn?.Capacity || 0,
+            roomSize: g.RentIn?.RoomSize || 0,
+          },
+          preferredProperties: (g.PreferredProperties || []).map((p: any) => ({
+            id: p.ID,
+            placeName: p.PlaceName || "",
+          })),
+          leaderId: g.Leader,
+          visibility: g.Visibility,
+        };
+
+        setGroup(mappedGroup);
+        console.log("Mapped group:", mappedGroup);
+        setHasGroup(true);
+      }
+    } catch (err) {
+      console.error("Error fetching group:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // useEffect สำหรับปิด dropdown เมื่อคลิกข้างนอก
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      // ถ้ามี dropdown เปิดอยู่ แล้วคลิกนอก element dropdown ให้ปิด
+      const target = e.target as HTMLElement;
+      if (
+        !target.closest(".dropdown-menu") &&
+        !target.closest(".menu-button")
+      ) {
+        setOpenMenuId(null);
+      }
+    }
+
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
+  }, []);
+
+  // ดักดูปุ่มว่า delete หรือ leave
+  function handleGroupActions(action: "delete" | "leave") {
+    setShowConfirm(action);
+  }
+
+  // ถ้า Modal เรากดยืนยัน
+  function confirmAction() {
+    if (showConfirm === "delete") handleDeleteGroup();
+    if (showConfirm === "leave") handleLeaveGroup();
+    setShowConfirm(null); // ปิด modal; เพราะโค้ดใน modal ให้ open={!!showConfirm} แล้วมันจะเช็คว่า if(!open) return null (ปิด)
+  }
+
+  const handleDeleteGroup = async () => {
+    if (!group) return;
+    try {
+      const success = await apiServices.deleteGroup(group.id);
+      if (success) {
+        setSuccessMessage("You delete the group successfully");
+        setShowSuccess(true); // แสดง modal ก่อน
+      }
+    } catch (err) {
+      console.error("Failed to delete group:", err);
+    }
+  };
+
+  const handleLeaveGroup = async () => {
+    if (!group) return;
+    try {
+      const success = await apiServices.leaveGroup(group.id);
+      if (success) {
+        setSuccessMessage("You left the group successfully");
+        setShowSuccess(true); // แสดง modal ก่อน
+        // ไม่ setGroup(null) หรือ setHasGroup(false) ที่นี่
+      }
+    } catch (err) {
+      console.error("Failed to leave group:", err);
+    }
+  };
+
+  const handleMenuToggle = (id: number) => {
+    setOpenMenuId((prev) => (prev === id ? null : id));
+  };
+
+  const handleKick = async (memberId: number) => {
+    if (!group) return;
+    const success = await apiServices.deleteMember(group.id, memberId);
+    if (success) fetchGroup(); // รีเฟรช list
+  };
+
+  const handlePromote = async (memberId: number) => {
+    if (!group) return;
+    const success = await apiServices.promoteLeader(group.id, memberId);
+    if (success) fetchGroup();
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen text-white">
+        <div className="bg-[#748CAB] p-10 rounded-4xl text-2xl">
+          Loading group info...
+        </div>
+      </div>
+    );
+  }
+  if (!hasGroup) {
+    return (
     <div className="h-screen w-full bg-[#1D2D44] overflow-hidden flex flex-col">
       <TopBar pageName="Group" />
     <div className="min-h-screen w-full bg-slate-800 flex flex-col items-center justify-center p-8">
@@ -38,6 +274,239 @@ export default function ProfilePage() {
         </div>
       </div>
     </div>
+    </div>
+ 
+    );
+  }
+  if (!group) return null; // กัน error ของ HTML ด้านล่าง
+
+  return (
+    <div className="flex flex-col h-screen bg-[#0F1B2D] text-black">
+      <TopBar pageName="Group Management" />
+
+      <div className="flex flex-col flex-1 p-4 gap-4">
+        {/* Section บน */}
+        <section className="flex justify-between bg-white rounded-lg shadow-lg p-6 ml-[62px]">
+          <div className="flex gap-6 items-center ">
+            <div>
+              <Image
+                src="/default_profile.png" // replace with your image path
+                alt="Group Avatar"
+                width={120}
+                height={120}
+                className="rounded-full border-4 border-white shadow-md"
+              />
+            </div>
+            <div>
+              <h2 className="text-4xl font-semibold">{group.name}</h2>
+              <p className="text-lg text-gray-600 mt-2">
+                Member: {group.members.length}
+                {/*/{group.rentIn.capacity}{" "}*/}
+              </p>
+              <p className="text-lg text-gray-700">
+                Description: {group.description}
+              </p>
+            </div>
+          </div>
+          <div>
+            <Button
+              className="w-60 h-15 cursor-pointer bg-red-400 hover:bg-red-500 text-white"
+              onClick={() => {
+                handleGroupActions(
+                  myTenantId === group?.leaderId ? "delete" : "leave"
+                );
+              }}
+            >
+              {myTenantId === group?.leaderId ? "Delete Group" : "Leave Group"}
+            </Button>
+          </div>
+        </section>
+
+        {/* Section ล่าง (แบ่งโซนซ้าย-ขวา) */}
+        <section className="flex h-full w-full gap-4">
+          {/* ซ้าย - Members */}
+          <section className="w-2/5 bg-white rounded-lg shadow-lg p-6 ml-[62px]">
+            <h3 className="text-3xl font-semibold my-4 mx-5">Members</h3>
+            <div className="flex flex-col gap-4">
+              {group.members.map((m) => (
+                <div
+                  key={m.id}
+                  className="flex items-center justify-between mx-5"
+                >
+                  <div className="flex items-center gap-3">
+                    <Image
+                      src={m.personalPicture || "/default_profile.png"}
+                      alt={m.name || `User ${m.userId}`}
+                      width={84}
+                      height={84}
+                      className="rounded-full border border-gray-300 w-21 h-21"
+                    />
+                    <div>
+                      <p className="text-lg font-medium">{m.name}</p>
+                      <p className="text-gray-500">
+                        {m.id === group.leaderId
+                          ? m.id === myTenantId
+                            ? "Head of group (You)"
+                            : "Head of group"
+                          : m.id === myTenantId
+                          ? "(You)"
+                          : ""}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="relative">
+                    {myTenantId === group?.leaderId &&
+                      m.id !== group.leaderId && (
+                        <>
+                          {/* ปุ่มสามจุด */}
+                          <Image
+                            src="/three-dots.png"
+                            alt="Options"
+                            width={24}
+                            height={24}
+                            className="cursor-pointer menu-button"
+                            onClick={() => handleMenuToggle(m.id)}
+                          />
+
+                          {/* Dropdown */}
+                          {openMenuId === m.id && (
+                            <div className="absolute right-0 mt-2 w-41 bg-[#EEF2F6] border border-gray-200 rounded-lg shadow-lg z-50 dropdown-menu px-2 py-3">
+                              <button
+                                className="w-full text-left px-2 py-1 text-red-600 hover:bg-[#90A3BC]/70 hover:text-white hover:cursor-pointer rounded-lg"
+                                onClick={() => {
+                                  setMemberAction({
+                                    type: "kick",
+                                    memberId: m.id,
+                                  });
+                                  setOpenMenuId(null);
+                                }}
+                              >
+                                Kick
+                              </button>
+
+                              <button
+                                className="w-full text-left px-2 py-1 hover:bg-[#90A3BC]/70 hover:text-white hover:cursor-pointer rounded-lg"
+                                onClick={() => {
+                                  setMemberAction({
+                                    type: "promote",
+                                    memberId: m.id,
+                                  });
+                                  setOpenMenuId(null);
+                                }}
+                              >
+                                Promote to leader
+                              </button>
+                            </div>
+                          )}
+                        </>
+                      )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* ขวา - RentIn */}
+          <section className="w-3/5 bg-white rounded-lg shadow-lg p-6">
+            <div className="mx-5 my-4">
+              <h3 className="text-3xl font-semibold mb-4">Group Details</h3>
+              <p className="text-lg mb-2">
+                <span className="font-medium">Created date:</span>
+                &nbsp;&nbsp;
+                {formatDate(group.createdAt)}
+              </p>
+              <p className="text-lg mb-2">
+                <span className="font-medium">Created by:</span>
+                &nbsp;&nbsp;
+                {group.members[0].name}
+              </p>
+              <p className="text-lg mb-2">
+                <span className="font-medium">Status:</span>
+                &nbsp;
+                {group.visibility ? "Opened" : "Closed"}
+              </p>
+              <p className="text-lg mb-2">
+                <span className="font-medium">Location Details:</span>{" "}
+                {group.rentIn.address}
+              </p>
+              <p className="text-lg mb-2">
+                <span className="font-medium">Group code:</span>{" "}
+                {/* {group.rentIn.description} */}
+              </p>
+              <p className="text-lg mb-2">
+                <span className="font-medium">Tags:</span>{" "}
+                {/* {group.rentIn.rentalFee} */}
+              </p>
+              <p className="flex items-center text-lg mb-2 gap-2">
+                <span className="font-medium">Preferred rooms:</span>{" "}
+                <span className="mr-2">
+                  {group.preferredProperties
+                    ?.map((p) => p.placeName)
+                    .join(", ")}
+                </span>
+                <Link href="/tenants/room">
+                  <Image
+                    src="/pencil-edit.svg"
+                    alt="Edit preferred rooms"
+                    width={18}
+                    height={18}
+                    className="cursor-pointer edit-room-button hover:w-5"
+                  />
+                </Link>
+              </p>
+            </div>
+          </section>
+        </section>
+      </div>
+
+      <ConfirmModal
+        open={!!showConfirm}
+        title={showConfirm === "delete" ? "Delete Group" : "Leave Group"}
+        message={
+          showConfirm === "delete"
+            ? "Are you sure you want to delete this group?"
+            : "Are you sure you want to leave this group?"
+        }
+        confirmText="Confirm"
+        cancelText="Cancel"
+        onConfirm={confirmAction}
+        onCancel={() => setShowConfirm(null)}
+      />
+
+      <ConfirmModal
+        open={!!memberAction}
+        title={
+          memberAction?.type === "kick" ? "Kick Member" : "Promote to Leader"
+        }
+        message={
+          memberAction?.type === "kick"
+            ? "Are you sure you want to kick this member?"
+            : "Are you sure you want to promote this member to leader?"
+        }
+        confirmText="Confirm"
+        cancelText="Cancel"
+        onConfirm={async () => {
+          if (!memberAction || !group) return;
+
+          if (memberAction.type === "kick") {
+            await handleKick(memberAction.memberId);
+          } else if (memberAction.type === "promote") {
+            await handlePromote(memberAction.memberId);
+          }
+          setMemberAction(null);
+        }}
+        onCancel={() => setMemberAction(null)}
+      />
+
+      <SuccessModal
+        open={showSuccess}
+        message={successMessage}
+        onConfirm={() => {
+          setShowSuccess(false);
+          setGroup(null);
+          setHasGroup(false); // ค่อย reset หลัง modal ปิด
+        }}
+      />
     </div>
   );
 }

@@ -300,7 +300,12 @@ export default function SearchGroup() {
         
         <div className="space-y-4">
           {groups.map((group) => (
-            <GroupCard key={group.id} group={group} />
+            <Link href={`/tenants/group/${group.id}`} key={group.id} className="block"
+                  onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
+                  onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                >
+              <GroupCard group={group} />
+            </Link>
           ))}
         </div>
       </div>

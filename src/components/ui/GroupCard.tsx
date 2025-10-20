@@ -72,7 +72,7 @@ export function GroupCard({ group }: { group: Group }) {
       }
     };
     fetchUserData();
-  }, [group.members]);
+  }, []);
 
   const handleRequestToJoin = async () => {
     setIsRequesting(true);
