@@ -3,6 +3,7 @@
 import SearchBar from "@/components/ui/SearchBar";
 import Image from "next/image";
 import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 
 interface Property {
   id: number;
@@ -17,6 +18,7 @@ interface Property {
   subDistrictName: string;
   districtName: string;
   provinceName: string;
+  isPreferred?: boolean;
 }
 
 export default function BookingPage() {
@@ -25,10 +27,14 @@ export default function BookingPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterValue, setFilterValue] = useState("");
   const [property, setProperty] = useState<Property | null>(null);
+  const [isPreferred, setIsPreferred] = useState<boolean>(false);
   const [isBooked, setIsBooked] = useState(false);
+  const [prefLoading, setPrefLoading] = useState(false);
 
-  // ตัวแปร pid สำหรับ API
-  const pid = 1;
+  // pid taken from query param ?pid=123
+  const searchParams = useSearchParams();
+  const pidParam = searchParams?.get("pid");
+  const pid = pidParam ? parseInt(pidParam, 10) : null;
 
   // Callback สำหรับ search box
   const handleSearch = (query: string) => {
@@ -44,7 +50,10 @@ export default function BookingPage() {
 
   // Fetch property data
   useEffect(() => {
+    // no gid required for groups/preferred-property API
+
     const fetchProperty = async () => {
+      if (!pid) return;
       try {
         const res = await fetch(`http://localhost:8080/property/${pid}`, {
           method: "GET",
@@ -55,7 +64,7 @@ export default function BookingPage() {
         const data = await res.json();
         // console.log("datap", data);
         const p: Property = data.property;
-
+        setIsPreferred(Boolean(p.isPreferred));
         // // ถ้าอยาก Override
         // const p: Property = data.property;
         // setProperty({
@@ -77,6 +86,7 @@ export default function BookingPage() {
   // ฟังก์ชัน submit booking
   const handleBooking = async () => {
     if (isBooked) return; // ป้องกันกดซ้ำ
+    if (!pid) return alert("Property id missing");
 
     try {
       // setIsBooked(true);
@@ -132,9 +142,49 @@ export default function BookingPage() {
 
           <h2 className="text-2xl font-bold my-4">
             Booking{" "}
-            <span className="ml-10">
-              {property ? property.placeName : "Loading..."}
-            </span>
+            <span className="ml-6 mr-4">{property ? property.placeName : "Loading..."}</span>
+            {/* Bookmark / prefer toggle */}
+            <button
+              aria-label="Toggle preferred"
+              disabled={prefLoading}
+              onClick={async () => {
+                if (!property || prefLoading) return;
+                // optimistic update
+                const prev = isPreferred;
+                setIsPreferred(!prev);
+                setPrefLoading(true);
+                try {
+                  const url = `http://localhost:8080/group/preferred-property/${property.id}`;
+                  const method = !prev ? "POST" : "DELETE";
+                  const res = await fetch(url, { method, credentials: "include" });
+                  const text = await res.text();
+                  let data: any = null;
+                  try { data = text ? JSON.parse(text) : null; } catch (e) { /* ignore non-json */ }
+                  if (!res.ok) {
+                    const msg = (data && (data.message || data.error)) || text || `Request failed (${res.status})`;
+                    throw new Error(msg);
+                  }
+                } catch (err: any) {
+                  console.error("Failed to toggle preferred", err);
+                  setIsPreferred(prev); // revert
+                  alert(err?.message || "Failed to update preferred list. Try again.");
+                } finally {
+                  setPrefLoading(false);
+                }
+              }}
+              className={`inline-flex items-center justify-center w-10 h-10 rounded-full transition-colors ${isPreferred ? "bg-yellow-400 text-white" : "bg-gray-200 text-gray-600"}`}
+            >
+              {/* simple bookmark icon (SVG) */}
+              {isPreferred ? (
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M5 3a2 2 0 00-2 2v12l7-4 7 4V5a2 2 0 00-2-2H5z" />
+                </svg>
+              ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M5 3a2 2 0 00-2 2v14l9-5 9 5V5a2 2 0 00-2-2H5z" />
+                </svg>
+              )}
+            </button>
           </h2>
 
           {/* Pictures */}
@@ -188,21 +238,19 @@ export default function BookingPage() {
               <div className="flex gap-2">
                 <button
                   onClick={() => setBookingType("myself")}
-                  className={`px-4 py-2 rounded-[16px] w-1/2 ${
-                    bookingType === "myself"
-                      ? "bg-[#445C7B] text-white"
-                      : "bg-gray-100 text-gray-600 hover:cursor-pointer"
-                  }`}
+                  className={`px-4 py-2 rounded-[16px] w-1/2 ${bookingType === "myself"
+                    ? "bg-[#445C7B] text-white"
+                    : "bg-gray-100 text-gray-600 hover:cursor-pointer"
+                    }`}
                 >
                   By Myself
                 </button>
                 <button
                   onClick={() => setBookingType("group")}
-                  className={`px-4 py-2 rounded-[16px] w-1/2 ${
-                    bookingType === "group"
-                      ? "bg-[#445C7B] text-white"
-                      : "bg-gray-100 text-gray-600 hover:cursor-pointer"
-                  }`}
+                  className={`px-4 py-2 rounded-[16px] w-1/2 ${bookingType === "group"
+                    ? "bg-[#445C7B] text-white"
+                    : "bg-gray-100 text-gray-600 hover:cursor-pointer"
+                    }`}
                 >
                   With Group
                 </button>
@@ -213,11 +261,10 @@ export default function BookingPage() {
           <button
             onClick={handleBooking}
             disabled={isBooked} // ปุ่ม disabled หลัง submit
-            className={`mx-auto mt-6 w-1/3 ${
-              isBooked
-                ? "bg-gray-400 cursor-not-allowed"
-                : "bg-[#F0EBD8] hover:bg-[#E0DBC8] hover:cursor-pointer"
-            } text-black font-medium py-2 rounded-[16px] transition`}
+            className={`mx-auto mt-6 w-1/3 ${isBooked
+              ? "bg-gray-400 cursor-not-allowed"
+              : "bg-[#F0EBD8] hover:bg-[#E0DBC8] hover:cursor-pointer"
+              } text-black font-medium py-2 rounded-[16px] transition`}
           >
             {isBooked ? "Pending..." : "Book"}
           </button>

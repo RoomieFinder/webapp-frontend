@@ -77,10 +77,9 @@ export default function PreferredRoomPage() {
     // fetchPreferred logic inlined into effect (uses AbortController)
 
     async function handleDelete(pid: number) {
-        if (!gid) return alert("Group ID missing");
         setDeletingId(pid);
         try {
-            const delUrl = `http://localhost:8080/group/${gid}/preferred-property/${pid}`;
+            const delUrl = `http://localhost:8080/group/preferred-property/${pid}`;
             console.log('[preferred] deleting', delUrl);
             const res = await fetch(delUrl, {
                 method: "DELETE",
