@@ -9,8 +9,8 @@ import ConfirmModal from "@/components/ui/ConfirmModal";
 import { formatDate, formatDateThai } from "@/utils/formatDate";
 import SuccessModal from "@/components/ui/SuccessModal";
 import Link from "next/link";
-import { AlertTriangle } from "lucide-react";
 import GroupOptionBox from "@/components/ui/GroupOptionBox";
+import { AlertTriangle } from "lucide-react";
 
 interface Member {
   id: number;
@@ -71,6 +71,7 @@ export default function GroupManagementPage() {
 
   const [showSuccess, setShowSuccess] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
+  const [visLoading, setVisLoading] = useState(false);
 
   useEffect(() => {
     if (myTenantId) {
@@ -275,13 +276,12 @@ export default function GroupManagementPage() {
       </div>
     </div>
     </div>
- 
     );
   }
   if (!group) return null; // กัน error ของ HTML ด้านล่าง
 
   return (
-    <div className="flex flex-col h-screen bg-[#0F1B2D] text-black">
+    <div className="flex flex-col h-screen bg-[#0F1B2D] text-black font-mono">
       <TopBar pageName="Group Management" />
 
       <div className="flex flex-col flex-1 p-4 gap-4">
@@ -349,8 +349,8 @@ export default function GroupManagementPage() {
                             ? "Head of group (You)"
                             : "Head of group"
                           : m.id === myTenantId
-                          ? "(You)"
-                          : ""}
+                            ? "(You)"
+                            : ""}
                       </p>
                     </div>
                   </div>
@@ -409,7 +409,77 @@ export default function GroupManagementPage() {
           {/* ขวา - RentIn */}
           <section className="w-3/5 bg-white rounded-lg shadow-lg p-6">
             <div className="mx-5 my-4">
-              <h3 className="text-3xl font-semibold mb-4">Group Details</h3>
+              <div className="flex items-center mb-4">
+                <h3 className="text-3xl font-semibold">Group Details</h3>
+                {myTenantId === group.leaderId && (
+                  <div className="ml-3">
+                    <button
+                      aria-label="Toggle visibility"
+                      disabled={visLoading}
+                      onClick={async () => {
+                        if (visLoading) return;
+                        // optimistic update: toggle locally first
+                        const prevVis = group.visibility;
+                        const optimisticVis = prevVis ? 0 : 1;
+                        setGroup({ ...group, visibility: optimisticVis });
+                        setVisLoading(true);
+                        try {
+                          const gid = group.id;
+                          const res = await fetch(`http://localhost:8080/group/${gid}/visibility`, {
+                            method: "PATCH",
+                            credentials: "include",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ visibility: optimisticVis }),
+                          });
+                          const text = await res.text();
+                          let data: any = null;
+                          try { data = text ? JSON.parse(text) : null; } catch (e) { /* ignore */ }
+                          if (!res.ok) {
+                            const msg = (data && (data.message || data.error)) || text || `Request failed (${res.status})`;
+                            const normalized = (msg || "").toString().trim().toLowerCase();
+                            if (
+                              normalized.includes("already set") ||
+                              normalized.includes("already set to the requested value") ||
+                              normalized.includes("already set to the requested value.")
+                            ) {
+                              // server indicates the value is already applied — keep optimistic state
+                            } else {
+                              // rollback optimistic state on other errors
+                              setGroup({ ...group, visibility: prevVis });
+                              throw new Error(msg);
+                            }
+                          }
+                        } catch (err: any) {
+                          console.error("Failed to update visibility", err);
+                          alert(err?.message || "Failed to update visibility");
+                        } finally {
+                          setVisLoading(false);
+                        }
+                      }}
+                      className={`inline-flex items-center justify-center w-8 h-8 rounded-full ${group.visibility ? 'bg-green-200' : 'bg-gray-200'}`}
+                    >
+                      {visLoading ? (
+                        <svg xmlns="http://www.w3.org/2000/svg" className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                          <circle cx="12" cy="12" r="10" strokeWidth="4" stroke="currentColor" strokeOpacity="0.25" />
+                          <path d="M4 12a8 8 0 018-8" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      ) : (
+                        group.visibility ? (
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5C21.27 7.61 17 4.5 12 4.5zM12 17a5 5 0 110-10 5 5 0 010 10z" />
+                          </svg>
+                        ) : (
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M2 12s4-8 10-8 10 8 10 8-4 8-10 8S2 12 2 12z" />
+                            <path d="M15 9l-6 6" />
+                            <path d="M9 9l6 6" />
+                          </svg>
+                        )
+                      )}
+                    </button>
+                  </div>
+                )}
+              </div>
               <p className="text-lg mb-2">
                 <span className="font-medium">Created date:</span>
                 &nbsp;&nbsp;
@@ -444,7 +514,7 @@ export default function GroupManagementPage() {
                     ?.map((p) => p.placeName)
                     .join(", ")}
                 </span>
-                <Link href="/tenants/room">
+                <Link href={`/tenants/room?gid=${group.id}`}>
                   <Image
                     src="/pencil-edit.svg"
                     alt="Edit preferred rooms"
