@@ -3,7 +3,8 @@
 import TopBar from "@/components/ui/TopBar";
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import { apiServices } from '@/api/apiServices';
+import { apiServices } from "@/api/apiServices";
+import Link from "next/link";
 
 type PropertyPicture = {
   ID: number;
@@ -35,10 +36,19 @@ type GroupRequest = {
 };
 
 type Property = {
-  ID: number;
-  PlaceName: string;
-  Description: string;
-  Pictures: PropertyPicture[];
+  id: number;
+  placeName: string;
+  caption: string;
+  type: string;
+  rentalFee: number;
+  capacity: number;
+  roomSize: number;
+  description: string;
+  pictures: string[]; // array ของ URL string
+  isPreferred: boolean;
+  subDistrictName: string;
+  districtName: string;
+  provinceName: string;
 };
 
 type User = {
@@ -53,7 +63,6 @@ type User = {
   };
   Tenant?: any;
 };
-
 
 export default function LandlordDashboardPage() {
   const [user, setUser] = useState<User | null>(null);
@@ -70,7 +79,9 @@ export default function LandlordDashboardPage() {
       const lid = me.Landlord.ID;
 
       try {
-        const res = await fetch(`http://localhost:8080/group/requests/landlord/${lid}`);
+        const res = await fetch(
+          `http://localhost:8080/group/requests/landlord/${lid}`
+        );
         const json = await res.json();
         if (json.success) {
           setRequests(json.data);
@@ -93,9 +104,8 @@ export default function LandlordDashboardPage() {
         });
         const json = await res.json();
         // console.log("Json res", json)
-          
+
         setProperties(json.properties);
-        
       } catch (err) {
         console.error("Failed to fetch properties", err);
       }
@@ -155,7 +165,9 @@ export default function LandlordDashboardPage() {
                               className="object-cover w-full h-full"
                             />
                           ) : (
-                            <span className="text-xs text-gray-500">No Image</span>
+                            <span className="text-xs text-gray-500">
+                              No Image
+                            </span>
                           )}
                         </div>
                         <div>
@@ -256,12 +268,12 @@ export default function LandlordDashboardPage() {
             <h2 className="text-2xl font-mono mb-4">Edit Posts</h2>
 
             <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
-              {properties.map((p) => {
-                const firstPic = p.Pictures?.[0]?.Link;
+              {(properties ?? [] ).map((p) => {
+                const firstPic = p.pictures?.[0];
 
                 return (
                   <article
-                    key={p.ID}
+                    key={p.id}
                     className="flex gap-4 items-start bg-white border rounded-lg p-4 shadow-sm"
                   >
                     {/* Picture */}
@@ -269,7 +281,7 @@ export default function LandlordDashboardPage() {
                       {firstPic ? (
                         <Image
                           src={firstPic}
-                          alt={p.PlaceName}
+                          alt={p.placeName}
                           width={160}
                           height={100}
                           className="object-cover w-full h-full"
@@ -282,21 +294,30 @@ export default function LandlordDashboardPage() {
                     {/* Details */}
                     <div className="flex-1">
                       <div className="flex items-start justify-between gap-4">
-                        <h3 className="text-2xl font-semibold">{p.PlaceName}</h3>
+                        <h3 className="text-2xl font-semibold">
+                          {p.placeName}
+                        </h3>
                         <div className="flex gap-2">
-                          <button className="px-3 py-1 rounded-md border">Edit</button>
-                          <button className="px-3 py-1 rounded-md border">Delete</button>
+                          <Link
+                            href={`/landlords/edit?pid=${p.id}`}
+                            className="px-3 py-1 rounded-md border bg-white hover:bg-gray-100"
+                          >
+                            Edit
+                          </Link>
+                          {/* <button className="px-3 py-1 rounded-md border">
+                            Delete
+                          </button> */}
                         </div>
                       </div>
                       <p className="mt-2 text-sm leading-relaxed text-gray-700">
-                        {p.Description}
+                        {p.description}
                       </p>
                     </div>
                   </article>
                 );
               })}
 
-              {properties.length === 0 && (
+              {(!properties || properties?.length === 0) && (
                 <div className="text-center text-gray-500 py-8">
                   No properties found
                 </div>
