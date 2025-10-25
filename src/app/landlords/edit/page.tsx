@@ -37,17 +37,38 @@ export default function EditPostPage() {
                 }
 
                 // tolerant picture extraction (handles string arrays and object arrays, different casing)
-                let pics: { id: number; url: string }[] = [];
+                // prefer numeric IDs when backend returns `pictureIds` alongside `pictures`
+                let pics: { id?: number; url: string }[] = [];
+                const pictureIdsAny = p.pictureIds ?? p.PictureIds ?? p.PictureIDs ?? p.pictureIDs;
                 if (Array.isArray(p.pictures)) {
-                    pics = p.pictures.map((u: any, i: number) => ({ id: i, url: typeof u === "string" ? u : (u.url ?? u.URL ?? "") }));
+                    if (Array.isArray(pictureIdsAny) && pictureIdsAny.length === p.pictures.length) {
+                        pics = p.pictures.map((u: any, i: number) => ({ id: pictureIdsAny[i], url: typeof u === "string" ? u : (u.url ?? u.URL ?? "") }));
+                    } else {
+                        pics = p.pictures.map((u: any) => ({ url: typeof u === "string" ? u : (u.url ?? u.URL ?? "") }));
+                    }
                 } else if (Array.isArray(p.Pictures)) {
-                    pics = p.Pictures.map((x: any, i: number) => ({ id: x.ID ?? x.id ?? i, url: x.URL ?? x.url ?? x.Path ?? x.path ?? "" }));
+                    const idsAny = p.PictureIds ?? p.pictureIds ?? p.PictureIDs ?? p.pictureIDs;
+                    if (Array.isArray(idsAny) && idsAny.length === p.Pictures.length) {
+                        pics = p.Pictures.map((x: any, i: number) => ({ id: idsAny[i] ?? x.ID ?? x.id, url: x.URL ?? x.url ?? x.Path ?? x.path ?? "" }));
+                    } else {
+                        pics = p.Pictures.map((x: any) => ({ id: x.ID ?? x.id, url: x.URL ?? x.url ?? x.Path ?? x.path ?? "" }));
+                    }
                 } else if (Array.isArray(p.PicturesUrls)) {
-                    pics = p.PicturesUrls.map((u: any, i: number) => ({ id: i, url: typeof u === "string" ? u : (u.url ?? u) }));
+                    pics = p.PicturesUrls.map((u: any) => ({ url: typeof u === "string" ? u : (u.url ?? u) }));
                 } else if (Array.isArray(p.Images)) {
-                    pics = p.Images.map((x: any, i: number) => ({ id: x.ID ?? x.id ?? i, url: x.URL ?? x.url ?? x }));
+                    const idsAny = p.imageIds ?? p.ImageIds ?? p.ImageIDs ?? p.imageIDs;
+                    if (Array.isArray(idsAny) && idsAny.length === p.Images.length) {
+                        pics = p.Images.map((x: any, i: number) => ({ id: idsAny[i] ?? x.ID ?? x.id, url: x.URL ?? x.url ?? x }));
+                    } else {
+                        pics = p.Images.map((x: any) => ({ id: x.ID ?? x.id, url: x.URL ?? x.url ?? x }));
+                    }
                 } else if (Array.isArray(p.Photos)) {
-                    pics = p.Photos.map((x: any, i: number) => ({ id: x.ID ?? x.id ?? i, url: x.URL ?? x.url ?? x }));
+                    const idsAny = p.photoIds ?? p.PhotoIds ?? p.PhotoIDs ?? p.photoIDs;
+                    if (Array.isArray(idsAny) && idsAny.length === p.Photos.length) {
+                        pics = p.Photos.map((x: any, i: number) => ({ id: idsAny[i] ?? x.ID ?? x.id, url: x.URL ?? x.url ?? x }));
+                    } else {
+                        pics = p.Photos.map((x: any) => ({ id: x.ID ?? x.id, url: x.URL ?? x.url ?? x }));
+                    }
                 }
 
                 // build initial values tolerant to key casing and alternate field names
@@ -73,7 +94,22 @@ export default function EditPostPage() {
         })();
     }, [pid]);
 
-    async function updateHandler(values: FormValues, photos: File[], deletingPictureIds?: number[]) {
+    // helper: extract the object key from an R2 URL like https://...r2.dev/<key>
+    function extractR2Key(raw: string): string {
+        if (!raw) return "";
+        const s = raw.toString().trim().replace(/^['"]|['"]$/g, "");
+        try {
+            const u = new URL(s);
+            const p = u.pathname.replace(/^\//, "");
+            if (p) return p;
+        } catch (e) {
+            // ignore and fallback to regex
+        }
+        const m = /r2\.dev\/([^'"\)\s,]+)/.exec(s);
+        return m && m[1] ? m[1] : "";
+    }
+
+    async function updateHandler(values: FormValues, photos: File[], deletingPictureIds?: number[], deletingPictureUrls?: string[]) {
         if (!pid) return { ok: false, message: "property id missing" };
         const fd = new FormData();
         fd.append("placeName", values.placeName);
@@ -92,6 +128,14 @@ export default function EditPostPage() {
             deletingPictureIds.forEach((id) => fd.append("deletingPictureIds", String(id)));
         }
 
+        // append deletingPictureUrls but send only the R2 object key (path after r2.dev/)
+        if (Array.isArray(deletingPictureUrls) && deletingPictureUrls.length > 0) {
+            deletingPictureUrls.forEach((u) => {
+                const key = extractR2Key(u || "");
+                if (key) fd.append("deletingPictureUrls", key);
+            });
+        }
+
         try {
             const res = await fetch(`http://localhost:8080/property/${pid}`, {
                 method: "PUT",
@@ -100,6 +144,67 @@ export default function EditPostPage() {
             });
             const data = await res.json();
             if (!res.ok) return { ok: false, message: data?.Message || data?.error || "Update failed" };
+            // on success, refetch the property to get updated values and update initialValues
+            try {
+                const refetch = await fetch(`http://localhost:8080/property/${pid}`, {
+                    method: "GET",
+                    credentials: "include",
+                    headers: { "Content-Type": "application/json" },
+                });
+                if (refetch.ok) {
+                    const j = await refetch.json();
+                    const p = j.property ?? j;
+                    // tolerant picture extraction (same logic as initial load)
+                    let pics: { id?: number; url: string }[] = [];
+                    const pictureIdsAny = p.pictureIds ?? p.PictureIds ?? p.PictureIDs ?? p.pictureIDs;
+                    if (Array.isArray(p.pictures)) {
+                        if (Array.isArray(pictureIdsAny) && pictureIdsAny.length === p.pictures.length) {
+                            pics = p.pictures.map((u: any, i: number) => ({ id: pictureIdsAny[i], url: typeof u === "string" ? u : (u.url ?? u.URL ?? "") }));
+                        } else {
+                            pics = p.pictures.map((u: any) => ({ url: typeof u === "string" ? u : (u.url ?? u.URL ?? "") }));
+                        }
+                    } else if (Array.isArray(p.Pictures)) {
+                        const idsAny = p.PictureIds ?? p.pictureIds ?? p.PictureIDs ?? p.pictureIDs;
+                        if (Array.isArray(idsAny) && idsAny.length === p.Pictures.length) {
+                            pics = p.Pictures.map((x: any, i: number) => ({ id: idsAny[i] ?? x.ID ?? x.id, url: x.URL ?? x.url ?? x.Path ?? x.path ?? "" }));
+                        } else {
+                            pics = p.Pictures.map((x: any) => ({ id: x.ID ?? x.id, url: x.URL ?? x.url ?? x.Path ?? x.path ?? "" }));
+                        }
+                    } else if (Array.isArray(p.PicturesUrls)) {
+                        pics = p.PicturesUrls.map((u: any) => ({ url: typeof u === "string" ? u : (u.url ?? u) }));
+                    } else if (Array.isArray(p.Images)) {
+                        const idsAny = p.imageIds ?? p.ImageIds ?? p.ImageIDs ?? p.imageIDs;
+                        if (Array.isArray(idsAny) && idsAny.length === p.Images.length) {
+                            pics = p.Images.map((x: any, i: number) => ({ id: idsAny[i] ?? x.ID ?? x.id, url: x.URL ?? x.url ?? x }));
+                        } else {
+                            pics = p.Images.map((x: any) => ({ id: x.ID ?? x.id, url: x.URL ?? x.url ?? x }));
+                        }
+                    } else if (Array.isArray(p.Photos)) {
+                        const idsAny = p.photoIds ?? p.PhotoIds ?? p.PhotoIDs ?? p.photoIDs;
+                        if (Array.isArray(idsAny) && idsAny.length === p.Photos.length) {
+                            pics = p.Photos.map((x: any, i: number) => ({ id: idsAny[i] ?? x.ID ?? x.id, url: x.URL ?? x.url ?? x }));
+                        } else {
+                            pics = p.Photos.map((x: any) => ({ id: x.ID ?? x.id, url: x.URL ?? x.url ?? x }));
+                        }
+                    }
+
+                    setInitialValues({
+                        placeName: (p.placeName ?? p.PlaceName) ?? "",
+                        caption: (p.caption ?? p.Caption) ?? "",
+                        type: (p.type ?? p.Type) ?? "",
+                        price: (p.rentalFee ?? p.RentalFee ?? "") !== "" ? String(p.rentalFee ?? p.RentalFee ?? "") : "",
+                        capacity: (p.capacity ?? p.Capacity ?? "") !== "" ? String(p.capacity ?? p.Capacity ?? "") : "",
+                        roomSize: (p.roomSize ?? p.RoomSize ?? "") !== "" ? String(p.roomSize ?? p.RoomSize ?? "") : "",
+                        description: (p.description ?? p.Description) ?? "",
+                        district: (p.districtName ?? p.DistrictName) ?? (p.subDistrictName ?? p.SubDistrictName) ?? (p.SubDistrict?.District?.NameInThai ?? p.SubDistrict?.DistrictName) ?? "",
+                        subdistrict: (p.subDistrictName ?? p.SubDistrictName) ?? (p.SubDistrict?.NameInThai ?? p.SubDistrictName ?? "") ?? "",
+                        existingPhotos: pics,
+                    });
+                }
+            } catch (e) {
+                console.error("refetch after update failed", e);
+            }
+
             return { ok: true, message: "Updated" };
         } catch (err) {
             console.error(err);
@@ -122,7 +227,7 @@ export default function EditPostPage() {
     }
 
     // call hook with initialValues (may be null at first)
-    const form = usePropertyForm(initialValues ?? {}, updateHandler);
+    const form = usePropertyForm(initialValues ?? {}, updateHandler, { resetOnSuccess: false });
 
     if (loadingInitial) {
         return (
