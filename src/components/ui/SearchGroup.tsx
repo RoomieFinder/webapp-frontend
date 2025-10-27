@@ -5,53 +5,8 @@ import { Search, ChevronDown } from "lucide-react";
 import { useState, useEffect } from "react";
 import { getUser, getUserCookie } from "@/api/getUser";
 import Link from "next/link";
-
-// Types
-interface Member {
-  id: number;
-  name: string;
-}
-
-interface RentIn {
-  id: number;
-  name: string;
-}
-
-interface Hobby {
-  id: number;
-  name: string;
-}
-
-interface Group {
-  id: number;
-  name: string;
-  description: string;
-  hobbies: Hobby[];
-  members: Member[];
-  rent_in_id: number;
-  rent_in: RentIn;
-  max_members?: number;
-  created_by?: string;
-  is_visible?: number;
-}
-
-interface SearchGroupResponse {
-  success: boolean;
-  message: string;
-  data: {
-    groups: Group[];
-    total: number;
-    page: number;
-    limit: number;
-  };
-}
-
-interface SearchFilters {
-  name?: string;
-  genderRestriction?: string;
-  hobbies?: string[];
-  rentInProperties?: string[];
-}
+import { Group, Hobby } from "@/types/group";
+import { SearchFilters } from "@/types/group";
 
 // Main Component
 export default function SearchGroup() {
@@ -217,8 +172,8 @@ export default function SearchGroup() {
 
                     {allHobbies.map((hobby) => (
                     <option
-                        key={hobby.ID || hobby.id || hobby._id || hobby.Name || hobby.name}
-                        value={hobby.Name || hobby.name}
+                        key={hobby.id || hobby.name}
+                        value={ hobby.name}
                     >
                         {hobby.Name || hobby.name}
                     </option>

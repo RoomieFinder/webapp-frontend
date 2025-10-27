@@ -11,44 +11,8 @@ import SuccessModal from "@/components/ui/SuccessModal";
 import Link from "next/link";
 import GroupOptionBox from "@/components/ui/GroupOptionBox";
 import { AlertTriangle } from "lucide-react";
+import { Group } from "@/types/group";
 
-interface Member {
-  id: number;
-  userId: number;
-  role: string;
-  personalPicture?: string | null;
-  name?: string;
-}
-
-interface Properties {
-  id: number;
-  placeName: string;
-}
-
-interface RentIn {
-  id: number;
-  placeName: string;
-  caption: string;
-  type: string;
-  address: string;
-  description: string;
-  rentalFee: number;
-  capacity: number;
-  roomSize: number;
-}
-
-interface Group {
-  id: number;
-  name: string;
-  description: string;
-  createdAt: string;
-  hobbies: string[];
-  members: Member[];
-  rentIn: RentIn;
-  preferredProperties: Properties[];
-  leaderId: number;
-  visibility: number;
-}
 
 export default function GroupManagementPage() {
   const [myTenantId, setMyTenantId] = useState<number | null>(null);
@@ -129,7 +93,7 @@ export default function GroupManagementPage() {
           createdAt: g.CreatedAt,
           hobbies: g.Hobbies || [],
           members: sortedMembers,
-          rentIn: {
+          rent_in: {
             id: g.RentIn?.ID || 0,
             placeName: g.RentIn?.PlaceName || "",
             caption: g.RentIn?.Caption || "",
@@ -145,7 +109,9 @@ export default function GroupManagementPage() {
             placeName: p.PlaceName || "",
           })),
           leaderId: g.Leader,
-          visibility: g.Visibility,
+          is_visible: g.Visibility,
+          genderRestriction: g.GenderRestriction,
+          rent_in_id: 0
         };
 
         setGroup(mappedGroup);
@@ -419,9 +385,9 @@ export default function GroupManagementPage() {
                       onClick={async () => {
                         if (visLoading) return;
                         // optimistic update: toggle locally first
-                        const prevVis = group.visibility;
+                        const prevVis = group.is_visible;
                         const optimisticVis = prevVis ? 0 : 1;
-                        setGroup({ ...group, visibility: optimisticVis });
+                        setGroup({ ...group, is_visible: optimisticVis });
                         setVisLoading(true);
                         try {
                           const gid = group.id;
@@ -445,7 +411,7 @@ export default function GroupManagementPage() {
                               // server indicates the value is already applied — keep optimistic state
                             } else {
                               // rollback optimistic state on other errors
-                              setGroup({ ...group, visibility: prevVis });
+                              setGroup({ ...group, is_visible: prevVis });
                               throw new Error(msg);
                             }
                           }
@@ -456,7 +422,7 @@ export default function GroupManagementPage() {
                           setVisLoading(false);
                         }
                       }}
-                      className={`inline-flex items-center justify-center w-8 h-8 rounded-full ${group.visibility ? 'bg-green-200' : 'bg-gray-200'}`}
+                      className={`inline-flex items-center justify-center w-8 h-8 rounded-full ${group.is_visible ? 'bg-green-200' : 'bg-gray-200'}`}
                     >
                       {visLoading ? (
                         <svg xmlns="http://www.w3.org/2000/svg" className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -464,7 +430,7 @@ export default function GroupManagementPage() {
                           <path d="M4 12a8 8 0 018-8" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
                       ) : (
-                        group.visibility ? (
+                        group.is_visible ? (
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5C21.27 7.61 17 4.5 12 4.5zM12 17a5 5 0 110-10 5 5 0 010 10z" />
                           </svg>
@@ -493,11 +459,11 @@ export default function GroupManagementPage() {
               <p className="text-lg mb-2">
                 <span className="font-medium">Status:</span>
                 &nbsp;
-                {group.visibility ? "Opened" : "Closed"}
+                {group.is_visible ? "Opened" : "Closed"}
               </p>
               <p className="text-lg mb-2">
                 <span className="font-medium">Location Details:</span>{" "}
-                {group.rentIn.address}
+                {group.rent_in.address}
               </p>
               <p className="text-lg mb-2">
                 <span className="font-medium">Group code:</span>{" "}
