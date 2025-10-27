@@ -67,6 +67,7 @@ export default function GroupManagementPage() {
   const [memberAction, setMemberAction] = useState<{
     type: "kick" | "promote";
     memberId: number;
+    userId: number;
   } | null>(null);
 
   const [showSuccess, setShowSuccess] = useState(false);
@@ -377,6 +378,7 @@ export default function GroupManagementPage() {
                                   setMemberAction({
                                     type: "kick",
                                     memberId: m.id,
+                                    userId: m.userId,
                                   });
                                   setOpenMenuId(null);
                                 }}
@@ -390,6 +392,7 @@ export default function GroupManagementPage() {
                                   setMemberAction({
                                     type: "promote",
                                     memberId: m.id,
+                                    userId: m.userId,
                                   });
                                   setOpenMenuId(null);
                                 }}
@@ -559,9 +562,9 @@ export default function GroupManagementPage() {
           if (!memberAction || !group) return;
 
           if (memberAction.type === "kick") {
-            await handleKick(memberAction.memberId);
+            await handleKick(memberAction.userId);
           } else if (memberAction.type === "promote") {
-            await handlePromote(memberAction.memberId);
+            await handlePromote(memberAction.userId);
           }
           setMemberAction(null);
         }}
