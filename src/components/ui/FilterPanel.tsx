@@ -60,10 +60,10 @@ export default function FilterPanel({
             <option value="">Select hobbies</option>
             {allHobbies.map((hobby) => (
               <option
-                key={hobby.id || hobby.name}
-                value={hobby.name}
+                key={hobby.id || hobby.Name}
+                value={hobby.Name}
               >
-                {hobby.Name || hobby.name}
+                {hobby.Name}
               </option>
             ))}
           </select>

@@ -24,6 +24,7 @@ export interface RentIn {
 
 export interface Hobby {
   id: number;
+  Name: string;
   name: string;
 }
 

@@ -1,4 +1,3 @@
-
 export interface Property {
   id: number;
   placeName: string;
@@ -8,9 +7,32 @@ export interface Property {
   capacity: number;
   roomSize: number;
   description: string;
-  pictures: string[]; // เพราะ API ส่ง array ของ string
+  isEmpty: boolean;
+  pictures: string[];
   subDistrictName: string;
   districtName: string;
   provinceName: string;
-  isPreferred?: boolean;
+}
+
+export interface PropertySearchFilters {
+  name?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  propertyType?: string;
+  maxCapacity?: number;
+  minCapacity?: number;
+  minRoomSize?: number;
+  maxRoomSize?: number;
+  province?: string;
+  district?: string;
+  subDistrict?: string;
+  page: number;
+  limit: number;
+}
+
+export interface PropertySearchResponse {
+  properties: Property[];
+  total: number;
+  page: number;
+  limit: number;
 }
