@@ -6,49 +6,13 @@ import { useEffect, useState } from "react";
 import { apiServices } from "@/api/apiServices";
 import Button from "@/components/ui/Button";
 import ConfirmModal from "@/components/ui/ConfirmModal";
-import { formatDate, formatDateThai } from "@/utils/formatDate";
 import SuccessModal from "@/components/ui/SuccessModal";
+import ReportModal from "@/components/ui/ReportModal";
+import { formatDate, formatDateThai } from "@/utils/formatDate";
 import Link from "next/link";
 import GroupOptionBox from "@/components/ui/GroupOptionBox";
 import { AlertTriangle } from "lucide-react";
-
-interface Member {
-  id: number;
-  userId: number;
-  role: string;
-  personalPicture?: string | null;
-  name?: string;
-}
-
-interface Properties {
-  id: number;
-  placeName: string;
-}
-
-interface RentIn {
-  id: number;
-  placeName: string;
-  caption: string;
-  type: string;
-  address: string;
-  description: string;
-  rentalFee: number;
-  capacity: number;
-  roomSize: number;
-}
-
-interface Group {
-  id: number;
-  name: string;
-  description: string;
-  createdAt: string;
-  hobbies: string[];
-  members: Member[];
-  rentIn: RentIn;
-  preferredProperties: Properties[];
-  leaderId: number;
-  visibility: number;
-}
+import { Member, Group, Properties, RentIn } from "@/types";
 
 export default function GroupManagementPage() {
   const [myTenantId, setMyTenantId] = useState<number | null>(null);
@@ -56,6 +20,7 @@ export default function GroupManagementPage() {
   const [loading, setLoading] = useState(true);
   const [hasGroup, setHasGroup] = useState<boolean | null>(null);
   const [group, setGroup] = useState<Group | null>(null);
+  const [pendingMembers, setPendingMembers] = useState<any[]>([]);
 
   // สำหรับ dropdown ของสมาชิกแต่ละคน
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
@@ -67,17 +32,19 @@ export default function GroupManagementPage() {
   const [memberAction, setMemberAction] = useState<{
     type: "kick" | "promote";
     memberId: number;
+    userId: number;
   } | null>(null);
 
   const [showSuccess, setShowSuccess] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [visLoading, setVisLoading] = useState(false);
 
-  useEffect(() => {
-    if (myTenantId) {
-      fetchGroup();
-    }
-  }, [myTenantId]);
+  const [reportTarget, setReportTarget] = useState<{
+    id: number;
+    name: string;
+    personalPicture?: string;
+  } | null>(null);
+  const [showReport, setShowReport] = useState(false);
 
   useEffect(() => {
     async function init() {
@@ -87,7 +54,7 @@ export default function GroupManagementPage() {
 
         setMyTenantId(me.Tenant.ID);
         // เรียก fetchGroup หลังจากได้ Tenant ID
-        fetchGroup();
+        // fetchGroup();
       } catch (err) {
         console.error("Error fetching current user:", err);
       }
@@ -95,6 +62,12 @@ export default function GroupManagementPage() {
 
     init();
   }, []);
+
+  useEffect(() => {
+    if (myTenantId) {
+      fetchGroup();
+    }
+  }, [myTenantId]);
 
   const fetchGroup = async () => {
     setLoading(true);
@@ -149,13 +122,89 @@ export default function GroupManagementPage() {
         };
 
         setGroup(mappedGroup);
-        console.log("Mapped group:", mappedGroup);
         setHasGroup(true);
+        console.log("Mapped group:", mappedGroup);
       }
     } catch (err) {
       console.error("Error fetching group:", err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchPending = async () => {
+    if (!group || !myTenantId) return;
+    if (myTenantId !== group.leaderId) return;
+
+    try {
+      const pendingRequests = await apiServices.getPendingRequests(group.id);
+      const filtered = (pendingRequests || []).filter(
+        (p: { Status: string; }) => p.Status === "pending"
+      );
+      const mappedPending = filtered.map((p: any) => ({
+        id: p.TenantID,
+        requestId: p.ID,
+        userId: p.Tenant.User.ID,
+        role: "Pending",
+        name: p.Tenant.User.Username || `User ${p.TenantID}`,
+        personalPicture:
+          p.Tenant.PersonalProfile.Pictures?.[0]?.Link ||
+          "/default_profile.png",
+        isPending: true,
+      }));
+      setPendingMembers(mappedPending);
+    } catch (err) {
+      console.error("Error fetching pending requests:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchPending();
+  }, [group?.id, myTenantId]);
+
+  // ฟังก์ชัน refresh ทั้งสมาชิกและ pending
+  const refreshGroupData = async () => {
+    if (!group || !myTenantId) return;
+
+    // fetch สมาชิกปกติ
+    const groupData = await apiServices.getGroup(group.id);
+    const sortedMembers = (groupData.Members || [])
+      .map((m: any) => ({
+        id: m.ID,
+        userId: m.UserID,
+        role: m.UserID === groupData.Leader ? "Leader" : "Member",
+        name: m.Name || `User ${m.UserID}`,
+        personalPicture: m.PersonalProfile.Pictures?.[0]?.Link,
+      }))
+      .sort((a: any, b: any) =>
+        a.userId === groupData.Leader
+          ? -1
+          : b.userId === groupData.Leader
+          ? 1
+          : 0
+      );
+    setGroup((prev) => (prev ? { ...prev, members: sortedMembers } : null));
+
+    // fetch pending เฉพาะ leader
+    if (myTenantId === groupData.Leader) {
+      const pendingRequests = await apiServices.getPendingRequests(group.id);
+      const filtered = (pendingRequests || []).filter(
+        (p: { Status: string }) => p.Status === "pending"
+      );
+      const mappedPending = filtered.map((p: any) => ({
+        id: p.TenantID,
+        requestId: p.ID,
+        userId: p.Tenant.User.ID,
+        role: "Pending",
+        name: p.Tenant.User.Username || `User ${p.TenantID}`,
+        personalPicture:
+          p.Tenant.PersonalProfile.Pictures?.[0]?.Link ||
+          "/default_profile.png",
+        isPending: true,
+      }));
+      setPendingMembers(mappedPending);
+    } else {
+      setPendingMembers([]);
     }
   };
 
@@ -231,6 +280,16 @@ export default function GroupManagementPage() {
     if (success) fetchGroup();
   };
 
+  const handleReportSubmit = async (reason: string, tenantId: number) => {
+    try {
+      await apiServices.reportUser(tenantId, reason);
+      alert("Report submitted successfully");
+    } catch (err) {
+      console.error("Failed to submit report:", err);
+      alert("Failed to submit report");
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen text-white">
@@ -242,40 +301,44 @@ export default function GroupManagementPage() {
   }
   if (!hasGroup) {
     return (
-    <div className="h-screen w-full bg-[#1D2D44] overflow-hidden flex flex-col">
-      <TopBar pageName="Group" />
-    <div className="min-h-screen w-full bg-slate-800 flex flex-col items-center justify-center p-8">
-      <div className="max-w-4xl w-full">
-        {/* Header with Alert */}
-        <div className="flex items-start gap-6 mb-12">
-          <AlertTriangle className="text-white flex-shrink-0" size={80} strokeWidth={1.5} />
-          <div>
-            <h1 className="text-white text-4xl font-bold mb-3">
-              Seem like you don't have a group yet.
-            </h1>
-            <p className="text-gray-300 text-xl">
-              You can find your roommates with the options below !
-            </p>
+      <div className="h-screen w-full bg-[#1D2D44] overflow-hidden flex flex-col">
+        <TopBar pageName="Group" />
+        <div className="min-h-screen w-full bg-slate-800 flex flex-col items-center justify-center p-8">
+          <div className="max-w-4xl w-full">
+            {/* Header with Alert */}
+            <div className="flex items-start gap-6 mb-12">
+              <AlertTriangle
+                className="text-white flex-shrink-0"
+                size={80}
+                strokeWidth={1.5}
+              />
+              <div>
+                <h1 className="text-white text-4xl font-bold mb-3">
+                  Seem like you don't have a group yet.
+                </h1>
+                <p className="text-gray-300 text-xl">
+                  You can find your roommates with the options below !
+                </p>
+              </div>
+            </div>
+
+            {/* Group Options */}
+            <div className="space-y-6">
+              <GroupOptionBox
+                title="Create a group"
+                description="You'll be the leader and can manage the group"
+                path="/tenants/group/create"
+              />
+
+              <GroupOptionBox
+                title="Join a group"
+                description="You'll be a member of any group you choose"
+                path="/tenants/group/join"
+              />
+            </div>
           </div>
         </div>
-
-        {/* Group Options */}
-        <div className="space-y-6">
-          <GroupOptionBox
-            title="Create a group"
-            description="You'll be the leader and can manage the group"
-            path="/tenants/group/create"
-          />
-          
-          <GroupOptionBox
-            title="Join a group"
-            description="You'll be a member of any group you choose"
-            path="/tenants/group/join"
-          />
-        </div>
       </div>
-    </div>
-    </div>
     );
   }
   if (!group) return null; // กัน error ของ HTML ด้านล่าง
@@ -328,9 +391,9 @@ export default function GroupManagementPage() {
           <section className="w-2/5 bg-white rounded-lg shadow-lg p-6 ml-[62px]">
             <h3 className="text-3xl font-semibold my-4 mx-5">Members</h3>
             <div className="flex flex-col gap-4">
-              {group.members.map((m) => (
+              {[...group.members, ...pendingMembers].map((m) => (
                 <div
-                  key={m.id}
+                  key={`${m.isPending ? "pending-" : "member-"}${m.id}`}
                   className="flex items-center justify-between mx-5"
                 >
                   <div className="flex items-center gap-3">
@@ -344,13 +407,15 @@ export default function GroupManagementPage() {
                     <div>
                       <p className="text-lg font-medium">{m.name}</p>
                       <p className="text-gray-500">
-                        {m.id === group.leaderId
+                        {m.isPending
+                          ? "Pending"
+                          : m.id === group.leaderId
                           ? m.id === myTenantId
                             ? "Head of group (You)"
                             : "Head of group"
                           : m.id === myTenantId
-                            ? "(You)"
-                            : ""}
+                          ? "(You)"
+                          : ""}
                       </p>
                     </div>
                   </div>
@@ -370,32 +435,120 @@ export default function GroupManagementPage() {
 
                           {/* Dropdown */}
                           {openMenuId === m.id && (
-                            <div className="absolute right-0 mt-2 w-41 bg-[#EEF2F6] border border-gray-200 rounded-lg shadow-lg z-50 dropdown-menu px-2 py-3">
-                              <button
-                                className="w-full text-left px-2 py-1 text-red-600 hover:bg-[#90A3BC]/70 hover:text-white hover:cursor-pointer rounded-lg"
-                                onClick={() => {
-                                  setMemberAction({
-                                    type: "kick",
-                                    memberId: m.id,
-                                  });
-                                  setOpenMenuId(null);
-                                }}
-                              >
-                                Kick
-                              </button>
-
-                              <button
-                                className="w-full text-left px-2 py-1 hover:bg-[#90A3BC]/70 hover:text-white hover:cursor-pointer rounded-lg"
-                                onClick={() => {
-                                  setMemberAction({
-                                    type: "promote",
-                                    memberId: m.id,
-                                  });
-                                  setOpenMenuId(null);
-                                }}
-                              >
-                                Promote to leader
-                              </button>
+                            <div className="absolute right-0 mt-2 w-50 bg-[#EEF2F6] border border-gray-200 rounded-lg shadow-lg z-50 dropdown-menu px-2 py-3">
+                              {m.isPending ? (
+                                <>
+                                  <button
+                                    className="w-full text-left px-2 py-1 text-green-600 hover:bg-[#90A3BC]/70 hover:text-white hover:cursor-pointer rounded-lg"
+                                    onClick={async () => {
+                                      console.log(
+                                        "Approve request:",
+                                        m.requestId
+                                      );
+                                      setOpenMenuId(null);
+                                      const success =
+                                        await apiServices.acceptRequest(
+                                          m.requestId
+                                        );
+                                      if (success) {
+                                        alert("Accepted successfully");
+                                        fetchGroup(); // รีเฟรช list หลัง approve
+                                        fetchPending();
+                                      } else {
+                                        alert("Failed to accept request");
+                                      }
+                                    }}
+                                  >
+                                    Approve
+                                  </button>
+                                  <button
+                                    className="w-full text-left px-2 py-1 text-red-600 hover:bg-[#90A3BC]/70 hover:text-white hover:cursor-pointer rounded-lg"
+                                    onClick={async () => {
+                                      console.log("Deny request:", m.requestId);
+                                      setOpenMenuId(null);
+                                      const success =
+                                        await apiServices.rejectRequest(
+                                          m.requestId
+                                        );
+                                      if (success) {
+                                        alert("Rejected successfully");
+                                        fetchGroup(); // รีเฟรช list หลัง reject
+                                        fetchPending();
+                                      } else {
+                                        alert("Failed to reject request");
+                                      }
+                                    }}
+                                  >
+                                    Deny
+                                  </button>
+                                  <Link
+                                    href={`/tenants/profile/${m.userId}`}
+                                    className="w-full block text-left px-2 py-1 hover:bg-[#90A3BC]/70 hover:text-white hover:cursor-pointer rounded-lg"
+                                    onClick={() => setOpenMenuId(null)}
+                                  >
+                                    View Profile
+                                  </Link>
+                                  <button
+                                    className="w-full text-left px-2 py-1 text-gray-600 hover:bg-[#90A3BC]/70 hover:text-white hover:cursor-pointer rounded-lg"
+                                    onClick={() => {
+                                      setReportTarget({
+                                        id: m.id,
+                                        name: m.name || `User ${m.userId}`,
+                                        personalPicture:
+                                          m.personalPicture ?? undefined,
+                                      });
+                                      setShowReport(true);
+                                      setOpenMenuId(null);
+                                    }}
+                                  >
+                                    Report
+                                  </button>
+                                </>
+                              ) : (
+                                <>
+                                  <button
+                                    className="w-full text-left px-2 py-1 text-red-600 hover:bg-[#90A3BC]/70 hover:text-white hover:cursor-pointer rounded-lg"
+                                    onClick={() => {
+                                      setMemberAction({
+                                        type: "kick",
+                                        memberId: m.id,
+                                        userId: m.userId,
+                                      });
+                                      setOpenMenuId(null);
+                                    }}
+                                  >
+                                    Kick
+                                  </button>
+                                  <button
+                                    className="w-full text-left px-2 py-1 hover:bg-[#90A3BC]/70 hover:text-white hover:cursor-pointer rounded-lg"
+                                    onClick={() => {
+                                      setMemberAction({
+                                        type: "promote",
+                                        memberId: m.id,
+                                        userId: m.userId,
+                                      });
+                                      setOpenMenuId(null);
+                                    }}
+                                  >
+                                    Promote to leader
+                                  </button>
+                                  <button
+                                    className="w-full text-left px-2 py-1 text-gray-600 hover:bg-[#90A3BC]/70 hover:text-white hover:cursor-pointer rounded-lg"
+                                    onClick={() => {
+                                      setReportTarget({
+                                        id: m.id,
+                                        name: m.name || `User ${m.userId}`,
+                                        personalPicture:
+                                          m.personalPicture ?? undefined,
+                                      });
+                                      setShowReport(true);
+                                      setOpenMenuId(null);
+                                    }}
+                                  >
+                                    Report
+                                  </button>
+                                </>
+                              )}
                             </div>
                           )}
                         </>
@@ -425,22 +578,41 @@ export default function GroupManagementPage() {
                         setVisLoading(true);
                         try {
                           const gid = group.id;
-                          const res = await fetch(`http://localhost:8080/group/${gid}/visibility`, {
-                            method: "PATCH",
-                            credentials: "include",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ visibility: optimisticVis }),
-                          });
+                          const res = await fetch(
+                            `http://localhost:8080/group/${gid}/visibility`,
+                            {
+                              method: "PATCH",
+                              credentials: "include",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({
+                                visibility: optimisticVis,
+                              }),
+                            }
+                          );
                           const text = await res.text();
                           let data: any = null;
-                          try { data = text ? JSON.parse(text) : null; } catch (e) { /* ignore */ }
+                          try {
+                            data = text ? JSON.parse(text) : null;
+                          } catch (e) {
+                            /* ignore */
+                          }
                           if (!res.ok) {
-                            const msg = (data && (data.message || data.error)) || text || `Request failed (${res.status})`;
-                            const normalized = (msg || "").toString().trim().toLowerCase();
+                            const msg =
+                              (data && (data.message || data.error)) ||
+                              text ||
+                              `Request failed (${res.status})`;
+                            const normalized = (msg || "")
+                              .toString()
+                              .trim()
+                              .toLowerCase();
                             if (
                               normalized.includes("already set") ||
-                              normalized.includes("already set to the requested value") ||
-                              normalized.includes("already set to the requested value.")
+                              normalized.includes(
+                                "already set to the requested value"
+                              ) ||
+                              normalized.includes(
+                                "already set to the requested value."
+                              )
                             ) {
                               // server indicates the value is already applied — keep optimistic state
                             } else {
@@ -456,25 +628,55 @@ export default function GroupManagementPage() {
                           setVisLoading(false);
                         }
                       }}
-                      className={`inline-flex items-center justify-center w-8 h-8 rounded-full ${group.visibility ? 'bg-green-200' : 'bg-gray-200'}`}
+                      className={`inline-flex items-center justify-center w-8 h-8 rounded-full hover:cursor-pointer ${
+                        group.visibility ? "bg-green-200" : "bg-gray-200"
+                      }`}
                     >
                       {visLoading ? (
-                        <svg xmlns="http://www.w3.org/2000/svg" className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                          <circle cx="12" cy="12" r="10" strokeWidth="4" stroke="currentColor" strokeOpacity="0.25" />
-                          <path d="M4 12a8 8 0 018-8" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="animate-spin h-4 w-4"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                        >
+                          <circle
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            strokeWidth="4"
+                            stroke="currentColor"
+                            strokeOpacity="0.25"
+                          />
+                          <path
+                            d="M4 12a8 8 0 018-8"
+                            strokeWidth="4"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      ) : group.visibility ? (
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-4 w-4"
+                          viewBox="0 0 24 24"
+                          fill="currentColor"
+                        >
+                          <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5C21.27 7.61 17 4.5 12 4.5zM12 17a5 5 0 110-10 5 5 0 010 10z" />
                         </svg>
                       ) : (
-                        group.visibility ? (
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5C21.27 7.61 17 4.5 12 4.5zM12 17a5 5 0 110-10 5 5 0 010 10z" />
-                          </svg>
-                        ) : (
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M2 12s4-8 10-8 10 8 10 8-4 8-10 8S2 12 2 12z" />
-                            <path d="M15 9l-6 6" />
-                            <path d="M9 9l6 6" />
-                          </svg>
-                        )
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-4 w-4"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                        >
+                          <path d="M2 12s4-8 10-8 10 8 10 8-4 8-10 8S2 12 2 12z" />
+                          <path d="M15 9l-6 6" />
+                          <path d="M9 9l6 6" />
+                        </svg>
                       )}
                     </button>
                   </div>
@@ -499,10 +701,9 @@ export default function GroupManagementPage() {
                 <span className="font-medium">Location Details:</span>{" "}
                 {group.rentIn.address}
               </p>
-              <p className="text-lg mb-2">
+              {/* <p className="text-lg mb-2">
                 <span className="font-medium">Group code:</span>{" "}
-                {/* {group.rentIn.description} */}
-              </p>
+              </p> */}
               <p className="text-lg mb-2">
                 <span className="font-medium">Tags:</span>{" "}
                 {/* {group.rentIn.rentalFee} */}
@@ -559,9 +760,9 @@ export default function GroupManagementPage() {
           if (!memberAction || !group) return;
 
           if (memberAction.type === "kick") {
-            await handleKick(memberAction.memberId);
+            await handleKick(memberAction.userId);
           } else if (memberAction.type === "promote") {
-            await handlePromote(memberAction.memberId);
+            await handlePromote(memberAction.userId);
           }
           setMemberAction(null);
         }}
@@ -576,6 +777,13 @@ export default function GroupManagementPage() {
           setGroup(null);
           setHasGroup(false); // ค่อย reset หลัง modal ปิด
         }}
+      />
+
+      <ReportModal
+        open={showReport}
+        onClose={() => setShowReport(false)}
+        user={reportTarget}
+        onSubmit={handleReportSubmit}
       />
     </div>
   );
