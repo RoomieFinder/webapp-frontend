@@ -4,7 +4,8 @@ import SearchBar from "@/components/ui/SearchBar";
 import Image from "next/image";
 import { useState, useEffect } from "react";
 import { apiServices } from "@/api/apiServices";
-import { BASE_URL } from "@/config/api";
+import BanConfirmModal from "@/components/ui/BanConfirmModal";
+import SuccessModal from "@/components/ui/SuccessModal";
 
 interface Report {
   ID: number;
@@ -32,6 +33,32 @@ export default function ReportsHandlingPage() {
     (Report & { reporter?: User; reported?: User })[]
   >([]);
   const [loading, setLoading] = useState(false);
+
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+
+  const [banModalOpen, setBanModalOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<{
+    reportId: number;
+    reportedName: string;
+    reporterName: string;
+    reportedPersonalPicture?: string;
+    reason?: string;
+  } | null>(null);
+
+  const openBanModal = (
+    report: Report & { reporter?: User; reported?: User }
+  ) => {
+    setSelectedUser({
+      reportId: report.ID,
+      reportedName: report.reported?.Username || "Unknown",
+      reporterName: report.reporter?.Username || "Unknown",
+      reportedPersonalPicture:
+        report.reported?.Tenant?.PersonalProfile?.Pictures?.[0]?.Link,
+      reason: report.Reason,
+    });
+    setBanModalOpen(true);
+  };
 
   // โหลดข้อมูลทั้งหมด
   useEffect(() => {
@@ -70,6 +97,34 @@ export default function ReportsHandlingPage() {
     r.reported?.Username?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const handleReject = async (reportId: number) => {
+    try {
+      await apiServices.rejectReport(reportId);
+      // alert("Report rejected successfully");
+      setSuccessMessage("Report rejected successfully");
+      setShowSuccess(true);
+
+      setReports((prev) => prev.filter((r) => r.ID !== reportId));
+    } catch (error) {
+      console.error(error);
+      alert("Failed to reject report");
+    }
+  };
+
+  const handleBanFromModal = async (reportId: number) => {
+    try {
+      await apiServices.banUser(reportId);
+      // alert("User banned successfully");
+      setSuccessMessage("User banned successfully");
+      setShowSuccess(true);
+
+      setReports((prev) => prev.filter((r) => r.ID !== reportId));
+    } catch (error) {
+      console.error(error);
+      alert("Failed to ban user");
+    }
+  };
+
   return (
     <div className="flex flex-col h-screen bg-[#0F1B2D] text-black">
       <SearchBar onSearch={handleSearch} onFilter={handleFilter} />
@@ -87,7 +142,6 @@ export default function ReportsHandlingPage() {
           ) : (
             <ul className="">
               {filteredReports.map((report) => {
-
                 const profilePic =
                   report.reported?.Tenant?.PersonalProfile?.Pictures?.[0]?.Link;
 
@@ -124,10 +178,16 @@ export default function ReportsHandlingPage() {
 
                     {/* Action buttons */}
                     <div className="flex gap-3">
-                      <button className="px-4 py-2 bg-[#627EAA] text-white rounded-lg hover:bg-[#4d6996] transition hover:cursor-pointer">
+                      <button
+                        onClick={() => handleReject(report.ID)}
+                        className="px-4 py-2 bg-[#627EAA] text-white rounded-lg hover:bg-[#4d6996] transition hover:cursor-pointer"
+                      >
                         Reject Report
                       </button>
-                      <button className="px-4 py-2 bg-[#E68780] text-white rounded-lg hover:bg-[#cc6b64] transition hover:cursor-pointer">
+                      <button
+                        onClick={() => openBanModal(report)}
+                        className="px-4 py-2 bg-[#E68780] text-white rounded-lg hover:bg-[#cc6b64] transition hover:cursor-pointer"
+                      >
                         Ban
                       </button>
                     </div>
@@ -139,7 +199,7 @@ export default function ReportsHandlingPage() {
         </div>
 
         {/* Right side - History */}
-        <div className="w-1/3 bg-white rounded-2xl p-6 flex flex-col">
+        {/* <div className="w-1/3 bg-white rounded-2xl p-6 flex flex-col">
           <h2 className="text-2xl font-bold mb-3">History</h2>
           <hr className="mb-3" />
           <div className="space-y-2 text-sm">
@@ -165,8 +225,23 @@ export default function ReportsHandlingPage() {
               </span>
             </p>
           </div>
-        </div>
+        </div> */}
       </div>
+
+      <SuccessModal
+        open={showSuccess}
+        message={successMessage}
+        onConfirm={() => {
+          setShowSuccess(false);
+        }}
+      />
+
+      <BanConfirmModal
+        open={banModalOpen}
+        onClose={() => setBanModalOpen(false)}
+        user={selectedUser}
+        onSubmit={(reportId) => handleBanFromModal(reportId)}
+      />
     </div>
   );
 }

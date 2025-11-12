@@ -61,13 +61,19 @@ export default function LoginPanel({
       });
 
       const data = await res.json();
-      // console.log(data);
+      console.log(data);
 
       if (res.ok) {
         setMessage("Login success");
         router.push("/role");
       } else {
-        if(data.message == null){
+        if(data.error != "invalid credentials"){
+          setMessage("This account is banned")
+        }
+        else if(data.error){
+          setMessage("Invalid credentials")
+        }
+        else if(data.message == null){
           setMessage("Login failed: Password do not match");
         }else{
           setMessage("Login failed: " + (data.message || ""));
