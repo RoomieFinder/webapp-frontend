@@ -13,10 +13,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   const navItems = [
-    { text: "Explore", path: "/tenants", icon: <ExploreIcon /> },
-    { text: "Profile", path: "/tenants/profile", icon: <ProfileIcon /> },
-    { text: "Booking", path: "/tenants/booking", icon: <FindRoommateIcon /> },
-    { text: "Group", path: "/tenants/group", icon: <CreatePartyIcon /> },
+    // { text: "Explore", path: "/tenants", icon: <ExploreIcon /> },
+    // { text: "Profile", path: "/tenants/profile", icon: <ProfileIcon /> },
+    // { text: "Booking", path: "/tenants/booking", icon: <FindRoommateIcon /> },
+    // { text: "Group", path: "/tenants/group", icon: <CreatePartyIcon /> },
     { text: "Report", path: "/admin/reports", icon: <BuildIcon /> },
   ];
 

@@ -8,11 +8,12 @@ import Button from "@/components/ui/Button";
 import ConfirmModal from "@/components/ui/ConfirmModal";
 import SuccessModal from "@/components/ui/SuccessModal";
 import ReportModal from "@/components/ui/ReportModal";
-import { formatDate, formatDateThai } from "@/utils/formatDate";
+import { formatDate } from "@/utils/formatDate";
 import Link from "next/link";
 import GroupOptionBox from "@/components/ui/GroupOptionBox";
 import { AlertTriangle } from "lucide-react";
 import { Member, Group, Properties, RentIn } from "@/types";
+import { removeAuthToken } from "@/utils/auth";
 
 export default function GroupManagementPage() {
   const [myTenantId, setMyTenantId] = useState<number | null>(null);
@@ -46,6 +47,10 @@ export default function GroupManagementPage() {
   } | null>(null);
   const [showReport, setShowReport] = useState(false);
 
+  const [successContext, setSuccessContext] = useState<
+    "report" | "groupAction" | null
+  >(null);
+
   useEffect(() => {
     async function init() {
       try {
@@ -73,6 +78,11 @@ export default function GroupManagementPage() {
     setLoading(true);
     try {
       const me = await apiServices.getMe();
+      if (me.IsBanned) {
+        removeAuthToken(); // ลบ token
+        window.location.href = "/"; // redirect
+      }
+
       const gid = me.Tenant?.GroupID;
 
       if (!gid) {
@@ -83,13 +93,17 @@ export default function GroupManagementPage() {
         if (!groupData) return;
 
         const g = groupData;
+
         const sortedMembers = (g.Members || [])
+          // กรองคนที่โดนแบนออกก่อน
+          .filter((m: any) => !m.User.IsBanned)
           .map((m: any) => ({
             id: m.ID,
             userId: m.UserID,
             role: m.UserID === g.Leader ? "Leader" : "Member",
             name: m.Name || `User ${m.UserID}`,
             personalPicture: m.PersonalProfile.Pictures?.[0]?.Link,
+            isBanned: m.IsBanned,
           }))
           .sort((a: { userId: number }, b: { userId: number }) =>
             a.userId === g.Leader ? -1 : b.userId === g.Leader ? 1 : 0
@@ -139,7 +153,7 @@ export default function GroupManagementPage() {
     try {
       const pendingRequests = await apiServices.getPendingRequests(group.id);
       const filtered = (pendingRequests || []).filter(
-        (p: { Status: string; }) => p.Status === "pending"
+        (p: any) => p.Status === "pending" && !p.Tenant.User.IsBanned
       );
       const mappedPending = filtered.map((p: any) => ({
         id: p.TenantID,
@@ -151,6 +165,7 @@ export default function GroupManagementPage() {
           p.Tenant.PersonalProfile.Pictures?.[0]?.Link ||
           "/default_profile.png",
         isPending: true,
+        isBanned: p.IsBanned,
       }));
       setPendingMembers(mappedPending);
     } catch (err) {
@@ -243,7 +258,8 @@ export default function GroupManagementPage() {
       const success = await apiServices.deleteGroup(group.id);
       if (success) {
         setSuccessMessage("You delete the group successfully");
-        setShowSuccess(true); // แสดง modal ก่อน
+        setSuccessContext("groupAction");
+        setShowSuccess(true);
       }
     } catch (err) {
       console.error("Failed to delete group:", err);
@@ -256,8 +272,8 @@ export default function GroupManagementPage() {
       const success = await apiServices.leaveGroup(group.id);
       if (success) {
         setSuccessMessage("You left the group successfully");
-        setShowSuccess(true); // แสดง modal ก่อน
-        // ไม่ setGroup(null) หรือ setHasGroup(false) ที่นี่
+        setSuccessContext("groupAction");
+        setShowSuccess(true);
       }
     } catch (err) {
       console.error("Failed to leave group:", err);
@@ -283,10 +299,14 @@ export default function GroupManagementPage() {
   const handleReportSubmit = async (reason: string, tenantId: number) => {
     try {
       await apiServices.reportUser(tenantId, reason);
-      alert("Report submitted successfully");
+      setSuccessMessage("Report submitted successfully");
+      setSuccessContext("report");
+      setShowSuccess(true);
     } catch (err) {
       console.error("Failed to submit report:", err);
-      alert("Failed to submit report");
+      setSuccessMessage("You left the group successfully");
+      setSuccessContext("groupAction");
+      setShowSuccess(true);
     }
   };
 
@@ -774,8 +794,10 @@ export default function GroupManagementPage() {
         message={successMessage}
         onConfirm={() => {
           setShowSuccess(false);
-          setGroup(null);
-          setHasGroup(false); // ค่อย reset หลัง modal ปิด
+          if (successContext === "groupAction") {
+            setGroup(null);
+            setHasGroup(false);
+          }
         }}
       />
 

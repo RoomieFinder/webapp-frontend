@@ -64,14 +64,14 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch, onFilter }) => {
           }}
         >
           <option value="">Filter</option>
-          <option value="option1">Option 1</option>
-          <option value="option2">Option 2</option>
+          {/* <option value="option1">Option 1</option>
+          <option value="option2">Option 2</option> */}
         </select>
 
         {/* Profile picture */}
         <Link href="/tenants/profile" style={{ marginLeft: "auto" }}>
           <img
-            src="/mock_user.png" // ใส่ path รูปจริงของคุณ
+            src="/default_profile.png" // ใส่ path รูปจริงของคุณ
             alt="Profile"
             style={{
               width: "40px",

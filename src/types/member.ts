@@ -6,4 +6,5 @@ export interface Member {
   personalPicture?: string | null;
   name?: string;
   isPending?: boolean;
+  isBanned?: boolean;
 }

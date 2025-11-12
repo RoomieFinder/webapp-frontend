@@ -235,4 +235,23 @@ export const apiServices = {
       return null;
     }
   },
+  async rejectReport(reportId: number) {
+    const res = await fetch(`${BASE_URL}/admin/reports/${reportId}/reject`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+    });
+    if (!res.ok) throw new Error("Failed to reject report");
+    return res.json();
+  },
+
+  async banUser(reportId: number) {
+    const res = await fetch(`${BASE_URL}/admin/reports/${reportId}/accept`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+    });
+    if (!res.ok) throw new Error("Failed to ban user");
+    return res.json();
+  },
 };

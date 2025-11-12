@@ -16,13 +16,13 @@ export default function SuccessModal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black/60 z-50">
-      <div className="bg-[#1e293b] text-white rounded-2xl shadow-lg p-6 w-96 text-center">
+    <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-50">
+      <div className="bg-white text-black rounded-2xl shadow-lg p-6 w-96 text-center">
         {title && <h3 className="text-xl font-semibold mb-4">{title}</h3>}
-        <p className="mb-6 text-gray-300">{message}</p>
+        <p className="mb-6 text-gray-700">{message}</p>
         <div className="flex justify-center">
           <button
-            className="px-6 py-2 bg-blue-500 hover:bg-blue-600 rounded-lg text-white hover:cursor-pointer"
+            className="px-6 py-2 bg-gray-500 hover:bg-gray-600 rounded-lg text-white hover:cursor-pointer"
             onClick={onConfirm}
           >
             OK
