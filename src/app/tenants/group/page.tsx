@@ -12,8 +12,8 @@ import { formatDate } from "@/utils/formatDate";
 import Link from "next/link";
 import GroupOptionBox from "@/components/ui/GroupOptionBox";
 import { AlertTriangle } from "lucide-react";
-import { Member, Group, Properties, RentIn } from "@/types";
-import { removeAuthToken } from "@/utils/auth";
+import { Group } from "@/types/group";
+
 
 export default function GroupManagementPage() {
   const [myTenantId, setMyTenantId] = useState<number | null>(null);
@@ -116,7 +116,7 @@ export default function GroupManagementPage() {
           createdAt: g.CreatedAt,
           hobbies: g.Hobbies || [],
           members: sortedMembers,
-          rentIn: {
+          rent_in: {
             id: g.RentIn?.ID || 0,
             placeName: g.RentIn?.PlaceName || "",
             caption: g.RentIn?.Caption || "",
@@ -132,7 +132,9 @@ export default function GroupManagementPage() {
             placeName: p.PlaceName || "",
           })),
           leaderId: g.Leader,
-          visibility: g.Visibility,
+          is_visible: g.Visibility,
+          genderRestriction: g.GenderRestriction,
+          rent_in_id: 0
         };
 
         setGroup(mappedGroup);
@@ -592,9 +594,9 @@ export default function GroupManagementPage() {
                       onClick={async () => {
                         if (visLoading) return;
                         // optimistic update: toggle locally first
-                        const prevVis = group.visibility;
+                        const prevVis = group.is_visible;
                         const optimisticVis = prevVis ? 0 : 1;
-                        setGroup({ ...group, visibility: optimisticVis });
+                        setGroup({ ...group, is_visible: optimisticVis });
                         setVisLoading(true);
                         try {
                           const gid = group.id;
@@ -637,7 +639,7 @@ export default function GroupManagementPage() {
                               // server indicates the value is already applied — keep optimistic state
                             } else {
                               // rollback optimistic state on other errors
-                              setGroup({ ...group, visibility: prevVis });
+                              setGroup({ ...group, is_visible: prevVis });
                               throw new Error(msg);
                             }
                           }
@@ -648,9 +650,7 @@ export default function GroupManagementPage() {
                           setVisLoading(false);
                         }
                       }}
-                      className={`inline-flex items-center justify-center w-8 h-8 rounded-full hover:cursor-pointer ${
-                        group.visibility ? "bg-green-200" : "bg-gray-200"
-                      }`}
+                      className={`inline-flex items-center justify-center w-8 h-8 rounded-full ${group.is_visible ? 'bg-green-200' : 'bg-gray-200'}`}
                     >
                       {visLoading ? (
                         <svg
@@ -675,7 +675,7 @@ export default function GroupManagementPage() {
                             strokeLinejoin="round"
                           />
                         </svg>
-                      ) : group.visibility ? (
+                      ) : group.is_visible ? (
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
                           className="h-4 w-4"
@@ -685,18 +685,17 @@ export default function GroupManagementPage() {
                           <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5C21.27 7.61 17 4.5 12 4.5zM12 17a5 5 0 110-10 5 5 0 010 10z" />
                         </svg>
                       ) : (
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-4 w-4"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                        >
-                          <path d="M2 12s4-8 10-8 10 8 10 8-4 8-10 8S2 12 2 12z" />
-                          <path d="M15 9l-6 6" />
-                          <path d="M9 9l6 6" />
-                        </svg>
+                        group.is_visible ? (
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5C21.27 7.61 17 4.5 12 4.5zM12 17a5 5 0 110-10 5 5 0 010 10z" />
+                          </svg>
+                        ) : (
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M2 12s4-8 10-8 10 8 10 8-4 8-10 8S2 12 2 12z" />
+                            <path d="M15 9l-6 6" />
+                            <path d="M9 9l6 6" />
+                          </svg>
+                        )
                       )}
                     </button>
                   </div>
@@ -715,11 +714,11 @@ export default function GroupManagementPage() {
               <p className="text-lg mb-2">
                 <span className="font-medium">Status:</span>
                 &nbsp;
-                {group.visibility ? "Opened" : "Closed"}
+                {group.is_visible ? "Opened" : "Closed"}
               </p>
               <p className="text-lg mb-2">
                 <span className="font-medium">Location Details:</span>{" "}
-                {group.rentIn.address}
+                {group.rent_in.address}
               </p>
               {/* <p className="text-lg mb-2">
                 <span className="font-medium">Group code:</span>{" "}

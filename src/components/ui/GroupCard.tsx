@@ -1,53 +1,7 @@
 import { getUser } from "@/api/getUser";
 import { useEffect, useState } from "react";
+import { Group } from "@/types/group";
 
-// Types
-interface Member {
-  id: number;
-  name: string;
-}
-
-interface RentIn {
-  id: number;
-  name: string;
-}
-
-interface Hobby {
-  id: number;
-  name: string;
-}
-
-interface Group {
-  id: number;
-  name: string;
-  description: string;
-  hobbies: Hobby[];
-  members: Member[];
-  rent_in_id: number;
-  rent_in: RentIn;
-  max_members?: number;
-  group_picture?: string;
-  created_by?: string;
-  is_visible?: number;
-}
-
-interface SearchGroupResponse {
-  success: boolean;
-  message: string;
-  data: {
-    groups: Group[];
-    total: number;
-    page: number;
-    limit: number;
-  };
-}
-
-interface SearchFilters {
-  name?: string;
-  genderRestriction?: string;
-  hobbies?: string[];
-  rentInProperties?: string[];
-}
 
 export function GroupCard({ group }: { group: Group }) {
   const maxMembers = group.max_members || 10;

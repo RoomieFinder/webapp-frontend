@@ -1,48 +1,4 @@
-// Types
-interface Member {
-  id: number;
-  name: string;
-}
-
-interface RentIn {
-  id: number;
-  name: string;
-}
-
-interface Hobby {
-  id: number;
-  name: string;
-}
-
-interface Group {
-  id: number;
-  name: string;
-  description: string;
-  hobbies: Hobby[];
-  members: Member[];
-  rent_in_id: number;
-  rent_in: RentIn;
-  max_members?: number;
-  created_by?: string;
-}
-
-interface SearchGroupResponse {
-  success: boolean;
-  message: string;
-  data: {
-    groups: Group[];
-    total: number;
-    page: number;
-    limit: number;
-  };
-}
-
-interface SearchFilters {
-  name?: string;
-  genderRestriction?: string;
-  hobbies?: string[];
-  rentInProperties?: string[];
-}
+import { SearchFilters, SearchGroupResponse } from "@/types/group";
 
 // API Function
 export default async function getGroups(filters: SearchFilters): Promise<SearchGroupResponse> {
