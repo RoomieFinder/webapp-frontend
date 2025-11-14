@@ -28,7 +28,7 @@ export default function BookingDetailPage() {
   const bid = params?.bid ? parseInt(params.bid as string, 10) : null;
 
   const [duration, setDuration] = useState("");
-  const [bookingType, setBookingType] = useState<"myself" | "group">("myself");
+  const [bookingType, setBookingType] = useState<"myself" | "group">("group");
   const [searchQuery, setSearchQuery] = useState("");
   const [filterValue, setFilterValue] = useState("");
   const [property, setProperty] = useState<Property | null>(null);
@@ -277,25 +277,12 @@ export default function BookingDetailPage() {
             <h3 className="text-xl font-semibold mb-4">Booking Info</h3>
 
             <div className="mb-4">
-              <label className="block text-gray-600 mb-2">Booking by</label>
-              <div className="flex gap-2">
+              <label className="block text-gray-600 mb-2">Booking</label>
+              <div>
                 <button
-                  onClick={() => setBookingType("myself")}
-                  className={`px-4 py-2 rounded-[16px] w-1/2 ${
-                    bookingType === "myself"
-                      ? "bg-[#445C7B] text-white"
-                      : "bg-gray-100 text-gray-600 hover:cursor-pointer"
-                  }`}
-                >
-                  By Myself
-                </button>
-                <button
+                  className={`px-4 py-2 rounded-[16px] w-full bg-[#445C7B] text-white`}
+                  // keep bookingType state consistent for potential future logic
                   onClick={() => setBookingType("group")}
-                  className={`px-4 py-2 rounded-[16px] w-1/2 ${
-                    bookingType === "group"
-                      ? "bg-[#445C7B] text-white"
-                      : "bg-gray-100 text-gray-600 hover:cursor-pointer"
-                  }`}
                 >
                   With Group
                 </button>
@@ -306,13 +293,13 @@ export default function BookingDetailPage() {
           <button
             onClick={handleBooking}
             disabled={isBooked}
-            className={`mx-auto mt-6 w-1/3 ${
+            className={`mx-auto mt-6 w-full ${
               isBooked
                 ? "bg-gray-400 cursor-not-allowed"
                 : "bg-[#F0EBD8] hover:bg-[#E0DBC8] hover:cursor-pointer"
             } text-black font-medium py-2 rounded-[16px] transition`}
           >
-            {isBooked ? "Pending..." : "Book"}
+            {isBooked ? "Pending..." : "Book (Group)"}
           </button>
         </div>
       </div>
