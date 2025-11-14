@@ -3,7 +3,7 @@
 import TopBar from "@/components/ui/TopBar";
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import { apiServices } from "@/api/apiServices";
+import { apiServices } from "@/api";
 import Link from "next/link";
 
 type PropertyPicture = {
@@ -79,13 +79,8 @@ export default function LandlordDashboardPage() {
       const lid = me.Landlord.ID;
 
       try {
-        const res = await fetch(
-          `http://localhost:8080/group/requests/landlord/${lid}`
-        );
-        const json = await res.json();
-        if (json.success) {
-          setRequests(json.data);
-        }
+        const data = await apiServices.getLandlordRequests(lid);
+        if (data) setRequests(data);
       } catch (err) {
         console.error("Failed to fetch requests", err);
       }
@@ -97,15 +92,8 @@ export default function LandlordDashboardPage() {
   useEffect(() => {
     async function fetchAllProperties() {
       try {
-        const res = await fetch(`http://localhost:8080/landlord/properties`, {
-          method: "GET",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-        });
-        const json = await res.json();
-        // console.log("Json res", json)
-
-        setProperties(json.properties);
+        const props = await apiServices.getLandlordProperties();
+        if (props) setProperties(props);
       } catch (err) {
         console.error("Failed to fetch properties", err);
       }
@@ -119,14 +107,8 @@ export default function LandlordDashboardPage() {
 
   const sendResponse = async (id: number, accept: boolean) => {
     try {
-      const res = await fetch(`http://localhost:8080/landlord/response/${id}`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ accept }),
-      });
-      console.log("Res", res);
-      setRequests((prev) => prev.filter((r) => r.ID !== id));
+      const ok = await apiServices.respondToLandlordRequest(id, accept);
+      if (ok) setRequests((prev) => prev.filter((r) => r.ID !== id));
     } catch (err) {
       console.error("Failed to send response", err);
     }
@@ -268,7 +250,7 @@ export default function LandlordDashboardPage() {
             <h2 className="text-2xl font-mono mb-4">Edit Posts</h2>
 
             <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
-              {(properties ?? [] ).map((p) => {
+              {(properties ?? []).map((p) => {
                 const firstPic = p.pictures?.[0];
 
                 return (

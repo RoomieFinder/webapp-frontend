@@ -2,6 +2,7 @@
 
 import TopBar from "@/components/ui/TopBar";
 import { useEffect, useState } from "react";
+import { apiServices } from "@/api";
 import { useSearchParams, useRouter } from "next/navigation";
 import { usePropertyForm, PropertyFormBody, PropertyFormActions, FormValues } from "@/features/property/PropertyForm";
 
@@ -17,17 +18,12 @@ export default function EditPostPage() {
         if (!pid) { setLoadingInitial(false); return; }
         (async () => {
             try {
-                const res = await fetch(`http://localhost:8080/property/${pid}`, {
-                    method: "GET",
-                    credentials: "include",
-                    headers: { "Content-Type": "application/json" },
-                });
-                if (!res.ok) {
-                    if (res.status === 404) setNotFound(true);
+                const json = await apiServices.getProperty(Number(pid));
+                if (!json) {
+                    setNotFound(true);
                     setLoadingInitial(false);
                     return;
                 }
-                const json = await res.json();
                 const p = json.property ?? json;
 
                 if (!p || Object.keys(p).length === 0) {
@@ -137,23 +133,13 @@ export default function EditPostPage() {
         }
 
         try {
-            const res = await fetch(`http://localhost:8080/property/${pid}`, {
-                method: "PUT",
-                credentials: "include",
-                body: fd,
-            });
-            const data = await res.json();
-            if (!res.ok) return { ok: false, message: data?.Message || data?.error || "Update failed" };
+            const updateRes = await apiServices.updateProperty(pid as string, fd);
+            if (!updateRes?.ok) return { ok: false, message: (updateRes as any)?.error?.message || "Update failed" };
             // on success, refetch the property to get updated values and update initialValues
             try {
-                const refetch = await fetch(`http://localhost:8080/property/${pid}`, {
-                    method: "GET",
-                    credentials: "include",
-                    headers: { "Content-Type": "application/json" },
-                });
-                if (refetch.ok) {
-                    const j = await refetch.json();
-                    const p = j.property ?? j;
+                const refetchJson = await apiServices.getProperty(Number(pid));
+                if (refetchJson) {
+                    const p = refetchJson.property ?? refetchJson;
                     // tolerant picture extraction (same logic as initial load)
                     let pics: { id?: number; url: string }[] = [];
                     const pictureIdsAny = p.pictureIds ?? p.PictureIds ?? p.PictureIDs ?? p.pictureIDs;
@@ -215,12 +201,9 @@ export default function EditPostPage() {
     async function handleDelete() {
         if (!pid) return;
         try {
-            const res = await fetch(`http://localhost:8080/property/${pid}`, {
-                method: "DELETE",
-                credentials: "include",
-            });
-            if (res.ok) router.push("/landlords");
-            else console.error("delete failed");
+            const del = await apiServices.deleteProperty(pid as string);
+            if (del?.ok) router.push("/landlords");
+            else console.error("delete failed", del?.error || del);
         } catch (err) {
             console.error(err);
         }

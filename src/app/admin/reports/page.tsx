@@ -3,7 +3,7 @@
 import SearchBar from "@/components/ui/SearchBar";
 import Image from "next/image";
 import { useState, useEffect } from "react";
-import { apiServices } from "@/api/apiServices";
+import { apiServices } from "@/api";
 import BanConfirmModal from "@/components/ui/BanConfirmModal";
 import SuccessModal from "@/components/ui/SuccessModal";
 

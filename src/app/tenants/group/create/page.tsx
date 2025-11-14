@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { apiServices } from "@/api";
 import Image from "next/image";
 import TopBar from "@/components/ui/TopBar";
 
@@ -17,37 +18,18 @@ export default function CreateGroup() {
         setMessage("");
 
         try {
-            const url = "http://localhost:8080/group"; 
             const body = {
                 group_name: groupName,
                 description: description,
-                //property_id: Number(stayLocation),
             };
-
-            console.log("Sending POST request to:", url);
-            console.log("Request body:", body);
-
-            const res = await fetch(url, {
-                method: "POST",
-                credentials: "include",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify(body),
-            });
-
-            console.log("Response status:", res.status);
-
-            const data = await res.json();
-            console.log("Response data:", data);
-
-            if (res.ok) {
+            const { ok, data } = await apiServices.createGroup(body);
+            if (ok) {
                 setMessage("✅ Group created successfully!");
                 setGroupName("");
                 setStayLocation("");
                 setDescription("");
             } else {
-                setMessage(`❌ ${data.message || "Failed to create group"}`);
+                setMessage(`❌ ${data?.message || "Failed to create group"}`);
             }
         } catch (error) {
             console.error("Network error:", error);

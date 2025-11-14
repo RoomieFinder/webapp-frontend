@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
-import getGroups from "@/api/getGroups";
-import { getUser, getUserCookie } from "@/api/getUser";
+import { getGroups, getUser, getUserCookie, fetchAllHobbies } from "@/api";
 import { Group, Hobby, SearchFilters } from "@/types/group";
 
 export function useSearchGroups() {
@@ -10,7 +9,7 @@ export function useSearchGroups() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showFilter, setShowFilter] = useState(false);
-  
+
   // Filter states
   const [gender, setGender] = useState("");
   const [selectedHobbies, setSelectedHobbies] = useState<string[]>([]);
@@ -32,29 +31,25 @@ export function useSearchGroups() {
         console.error("Error fetching user data:", error);
       }
     };
-    
-    fetchUserData();
-    fetchGroups();
-    fetchAllHobbies();
+
+    const init = async () => {
+      await fetchUserData();
+      await fetchGroups();
+      try {
+        const data = await fetchAllHobbies();
+        if (data?.success) setAllHobbies(data.data || []);
+      } catch (err) {
+        console.error("Error fetching hobbies:", err);
+      }
+    };
+    init();
   }, []);
 
-  const fetchAllHobbies = async () => {
-    try {
-      const baseUrl = process.env.APP_ADDRESS || "http://localhost:8080";
-      const res = await fetch(`${baseUrl}/hobby`);
-      const data = await res.json();
-      if (data.success) {
-        setAllHobbies(data.data);
-      }
-    } catch (err) {
-      console.error("Error fetching hobbies:", err);
-    }
-  };
 
   const fetchGroups = async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
       const filters: SearchFilters = {
         name: searchTerm || undefined,
@@ -62,7 +57,7 @@ export function useSearchGroups() {
         hobbies: selectedHobbies.length > 0 ? selectedHobbies : undefined,
         rentInProperties: propertyName ? [propertyName] : undefined,
       };
-      
+
       const result = await getGroups(filters);
       setGroups(result.data.groups);
     } catch (err) {

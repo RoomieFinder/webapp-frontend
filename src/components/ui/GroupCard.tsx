@@ -1,4 +1,4 @@
-import { getUser } from "@/api/getUser";
+import { getUser, apiServices } from "@/api";
 import { useEffect, useState } from "react";
 import { Group } from "@/types/group";
 
@@ -16,25 +16,8 @@ export function GroupCard({ group }: { group: Group }) {
     setRequestError(null);
 
     try {
-      const baseUrl = process.env.APP_ADDRESS || "http://localhost:8080";
-      const response = await fetch(`${baseUrl}/groupRequest/requests/groups/${group.id}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include", // Include cookies for authentication
-        // Add body if needed, for example:
-        // body: JSON.stringify({ message: "I would like to join your group" }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        throw new Error(errorData?.message || `Failed to send request: ${response.status}`);
-      }
-
-      const data = await response.json();
-      console.log("Join request sent successfully:", data);
-      
+      const success = await apiServices.joinGroup(group.id);
+      if (!success) throw new Error("Failed to send join request");
       alert("Request to join sent successfully!");
     } catch (error) {
       console.error("Error sending join request:", error);
@@ -44,7 +27,7 @@ export function GroupCard({ group }: { group: Group }) {
       setIsRequesting(false);
     }
   };
-  
+
   return (
     <div className="bg-white rounded-lg shadow-md p-6 flex items-center gap-6">
       <img
@@ -52,7 +35,7 @@ export function GroupCard({ group }: { group: Group }) {
         alt={group.name}
         className="w-24 h-24 rounded-lg object-cover flex-shrink-0"
       />
-      
+
       <div className="flex-1">
         <div className="flex items-start justify-between mb-2">
           <div>
@@ -63,7 +46,7 @@ export function GroupCard({ group }: { group: Group }) {
             members: {currentMembers}/{maxMembers}
           </span>
         </div>
-        
+
         <div className="flex flex-wrap gap-2">
           {group.hobbies && group.hobbies.length > 0 ? (
             group.hobbies.map((hobby) => (
@@ -82,12 +65,12 @@ export function GroupCard({ group }: { group: Group }) {
         </div>
       </div>
 
-      <button 
+      <button
         className={`px-6 py-3 rounded-lg font-medium transition flex-shrink-0
-          ${isRequesting 
-            ? "bg-gray-300 text-gray-600 cursor-not-allowed" 
+          ${isRequesting
+            ? "bg-gray-300 text-gray-600 cursor-not-allowed"
             : "bg-amber-100 text-gray-800 hover:bg-amber-200"
-        }`}
+          }`}
         onClick={(e) => {
           e.preventDefault(); // Prevents link navigation
           e.stopPropagation(); // Stops event from bubbling to parent Link

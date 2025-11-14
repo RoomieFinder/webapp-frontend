@@ -53,30 +53,53 @@ export default function LoginPanel({
     if (emailErr || passwordErr) return;
 
     try {
-      const res = await fetch("http://localhost:8080/auth/login", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-
-      const data = await res.json();
-      console.log(data);
-
-      if (res.ok) {
+      const api = await import("@/api");
+      const { ok, data } = await api.apiServices.authLogin({ email, password });
+      console.debug("authLogin response:", { ok, data });
+      if (ok) {
         setMessage("Login success");
-        router.push("/role");
+        // close the panel first
+        try {
+          onClose();
+        } catch {}
+
+        // Wait for server session/cookie to be available. Retry getMe a few times.
+        const tryGetMe = async (retries = 3, delayMs = 300) => {
+          for (let i = 0; i < retries; i++) {
+            try {
+              const me = await api.apiServices.getMe();
+              console.debug("getMe attempt", i, me);
+              if (me) return me;
+            } catch (e) {
+              console.warn("getMe attempt error", e);
+            }
+            await new Promise((r) => setTimeout(r, delayMs));
+          }
+          return null;
+        };
+
+        const me = await tryGetMe(4, 300);
+        if (me) {
+          try {
+            router.replace("/role");
+          } catch (navErr) {
+            console.error("router navigation failed, falling back:", navErr);
+            if (typeof window !== "undefined") window.location.href = "/role";
+          }
+        } else {
+          // session not established — show message and keep user on page for debugging
+          console.warn("Session not established after login (getMe returned null)");
+          setMessage("Login succeeded but session not confirmed — refresh or try again");
+        }
       } else {
-        if(data.error != "invalid credentials"){
-          setMessage("This account is banned")
-        }
-        else if(data.error){
-          setMessage("Invalid credentials")
-        }
-        else if(data.message == null){
+        if (data?.error && data.error !== "invalid credentials") {
+          setMessage("This account is banned");
+        } else if (data?.error) {
+          setMessage("Invalid credentials");
+        } else if (data?.message == null) {
           setMessage("Login failed: Password do not match");
-        }else{
-          setMessage("Login failed: " + (data.message || ""));
+        } else {
+          setMessage("Login failed: " + (data?.message || ""));
         }
       }
     } catch (err) {
@@ -120,8 +143,8 @@ export default function LoginPanel({
                 onChange={(e) => setEmail(e.target.value)}
                 onBlur={handleBlurEmail}
                 className={`w-full p-2 border rounded focus:outline-none focus:ring-2 ${emailError
-                    ? "border-red-500 focus:ring-red-500"
-                    : "border-gray-300 focus:ring-blue-500"
+                  ? "border-red-500 focus:ring-red-500"
+                  : "border-gray-300 focus:ring-blue-500"
                   } text-black`}
               />
               {emailError && (

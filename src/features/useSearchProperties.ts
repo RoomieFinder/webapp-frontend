@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
-import getProperties from "@/api/getProperties";
-import { getUser, getUserCookie } from "@/api/getUser";
+import { getProperties, getUser, getUserCookie } from "@/api";
 import { Property, PropertySearchFilters } from "@/types/property";
 
 export function useSearchProperties() {
@@ -10,12 +9,12 @@ export function useSearchProperties() {
   const [loading, setLoading] = useState(true); // Start with loading true
   const [error, setError] = useState<string | null>(null);
   const [showFilter, setShowFilter] = useState(false);
-  
+
   // Pagination
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [limit] = useState(10);
-  
+
   // Filter states
   const [propertyType, setPropertyType] = useState("");
   const [minPrice, setMinPrice] = useState("");
@@ -43,7 +42,7 @@ export function useSearchProperties() {
         console.error("Error fetching user data:", error);
       }
     };
-    
+
     fetchUserData();
     fetchProperties();
   }, []);
@@ -51,7 +50,7 @@ export function useSearchProperties() {
   const fetchProperties = async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
       const filters: PropertySearchFilters = {
         name: searchTerm || undefined,
@@ -68,12 +67,12 @@ export function useSearchProperties() {
         page,
         limit,
       };
-      
+
       const result = await getProperties(filters);
       setProperties(result.properties);
       setTotal(result.total);
       console.log("API Response:", result); // ADD THIS
-console.log("Properties:", result.properties); // ADD THIS
+      console.log("Properties:", result.properties); // ADD THIS
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {

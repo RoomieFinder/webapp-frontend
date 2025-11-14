@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from "react";
-import { getUser } from "@/api/getUser";
+import { getUser, fetchAllHobbies } from "@/api";
 
 type Hobby = {
   ID: number;
@@ -46,21 +46,17 @@ export default function ViewProfile({ id }: { id: string }) {
       }
     };
 
-    const fetchAllHobbies = async () => {
+    const fetchAll = async () => {
       try {
-        const baseUrl = process.env.APP_ADDRESS || "http://localhost:8080";
-        const res = await fetch(`${baseUrl}/hobby`);
-        const data = await res.json();
-        if (data.success) {
-          setAllHobbies(data.data);
-        }
+        const data = await fetchAllHobbies();
+        if (data?.success) setAllHobbies(data.data || []);
       } catch (err) {
         console.error("Error fetching hobbies:", err);
       }
     };
 
     const loadData = async () => {
-      await Promise.all([fetchAllHobbies(), fetchUserData()]);
+      await Promise.all([fetchAll(), fetchUserData()]);
       setLoading(false);
     };
 

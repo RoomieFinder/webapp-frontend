@@ -12,7 +12,7 @@ export default function RegisterForm({
   onSwitchToLogin: () => void;
 }) {
   // const router = useRouter();
-  
+
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
@@ -91,23 +91,15 @@ export default function RegisterForm({
       return;
 
     try {
-      const res = await fetch("http://localhost:8080/auth/register", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: name, email, password, phone, role: "user" }),
-      });
-
-      const data = await res.json();
-      // console.log(res, data)
-      if (res.ok && data.data.ID) {
+      const { ok, data } = await (await import("@/api")).apiServices.authRegister({ username: name, email, password, phone, role: "user" });
+      if (ok && data?.data?.ID) {
         setMessage("Register success");
         onSwitchToLogin();
       } else {
         setMessage("Register failed");
       }
     } catch (err) {
-      console.error(err); 
+      console.error(err);
       setMessage("Error connecting to server");
     }
   };
@@ -145,11 +137,10 @@ export default function RegisterForm({
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 onBlur={handleBlurName}
-                className={`w-full p-2 border rounded focus:outline-none focus:ring-2 ${
-                  nameError
+                className={`w-full p-2 border rounded focus:outline-none focus:ring-2 ${nameError
                     ? "border-red-500 focus:ring-red-500"
                     : "border-gray-300 focus:ring-blue-500"
-                } text-black`}
+                  } text-black`}
               />
               {nameError && <p className="text-xs text-red-500">{nameError}</p>}
             </div>
@@ -164,11 +155,10 @@ export default function RegisterForm({
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 onBlur={handleBlurPhone}
-                className={`w-full p-2 border rounded focus:outline-none focus:ring-2 ${
-                  phoneError
+                className={`w-full p-2 border rounded focus:outline-none focus:ring-2 ${phoneError
                     ? "border-red-500 focus:ring-red-500"
                     : "border-gray-300 focus:ring-blue-500"
-                } text-black`}
+                  } text-black`}
               />
               {phoneError && (
                 <p className="text-xs text-red-500">{phoneError}</p>
@@ -185,11 +175,10 @@ export default function RegisterForm({
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 onBlur={handleBlurEmail}
-                className={`w-full p-2 border rounded focus:outline-none focus:ring-2 ${
-                  emailError
+                className={`w-full p-2 border rounded focus:outline-none focus:ring-2 ${emailError
                     ? "border-red-500 focus:ring-red-500"
                     : "border-gray-300 focus:ring-blue-500"
-                } text-black`}
+                  } text-black`}
               />
               {emailError && (
                 <p className="text-xs text-red-500">{emailError}</p>

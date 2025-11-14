@@ -4,6 +4,7 @@ import SearchBar from "@/components/ui/SearchBar";
 import Image from "next/image";
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { apiServices } from "@/api";
 import TopBar from "@/components/ui/TopBar";
 
 interface Property {
@@ -61,19 +62,9 @@ export default function BookingDetailPage() {
 
       try {
         setLoading(true);
-        const baseUrl = process.env.APP_ADDRESS || "http://localhost:8080";
-        const res = await fetch(`${baseUrl}/property/${bid}`, {
-          method: "GET",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-        });
-
-        if (!res.ok) {
-          throw new Error(`Failed to fetch property: ${res.status}`);
-        }
-
-        const data = await res.json();
-        const p: Property = data.property;
+        const data = await apiServices.getProperty(bid);
+        if (!data) throw new Error('Failed to fetch property');
+        const p: Property = data.property ?? data;
         setIsPreferred(Boolean(p.isPreferred));
         setProperty(p);
       } catch (err) {
@@ -97,24 +88,13 @@ export default function BookingDetailPage() {
 
     try {
       setIsBooked(true);
-      const baseUrl = process.env.APP_ADDRESS || "http://localhost:8080";
-      const res = await fetch(
-        `${baseUrl}/group/booking/request/${bid}`,
-        {
-          method: "POST",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-        }
-      );
-
-      if (!res.ok) throw new Error("Booking failed");
-
-      const data = await res.json();
-      console.log("Booking success:", data);
-      alert("Booking request sent! Pending approval.");
+      const resp = await apiServices.bookProperty(bid);
+      if (!resp) throw new Error('Booking failed');
+      console.log('Booking success:', resp);
+      alert('Booking request sent! Pending approval.');
     } catch (error) {
-      console.error("Booking error:", error);
-      alert("Booking failed. See console for details.");
+      console.error('Booking error:', error);
+      alert('Booking failed. See console for details.');
       setIsBooked(false);
     }
   };
@@ -128,24 +108,9 @@ export default function BookingDetailPage() {
     setPrefLoading(true);
 
     try {
-      const baseUrl = process.env.APP_ADDRESS || "http://localhost:8080";
-      const url = `${baseUrl}/group/preferred-property/${property.id}`;
-      const method = !prev ? "POST" : "DELETE";
-      const res = await fetch(url, { method, credentials: "include" });
-      const text = await res.text();
-      let data: any = null;
-      try {
-        data = text ? JSON.parse(text) : null;
-      } catch (e) {
-        /* ignore non-json */
-      }
-      if (!res.ok) {
-        const msg =
-          (data && (data.message || data.error)) ||
-          text ||
-          `Request failed (${res.status})`;
-        throw new Error(msg);
-      }
+      if (!property) throw new Error('No property');
+      const ok = !prev ? await apiServices.addPreferredProperty(property.id) : await apiServices.removePreferredProperty(property.id);
+      if (!ok) throw new Error('Failed to update preferred');
     } catch (err: any) {
       console.error("Failed to toggle preferred", err);
       setIsPreferred(prev);
@@ -181,8 +146,8 @@ export default function BookingDetailPage() {
 
   return (
     <div className="flex flex-col h-screen bg-[#0F1B2D] text-black">
-        
-      <TopBar pageName={property.placeName+" detail"} />
+
+      <TopBar pageName={property.placeName + " detail"} />
 
       {/* Content */}
       <div className="flex flex-1 p-4 gap-4">
@@ -195,11 +160,10 @@ export default function BookingDetailPage() {
               aria-label="Toggle preferred"
               disabled={prefLoading}
               onClick={togglePreferred}
-              className={`inline-flex items-center justify-center w-10 h-10 rounded-full transition-colors ${
-                isPreferred
+              className={`inline-flex items-center justify-center w-10 h-10 rounded-full transition-colors ${isPreferred
                   ? "bg-yellow-400 text-white"
                   : "bg-gray-200 text-gray-600"
-              }`}
+                }`}
             >
               {isPreferred ? (
                 <svg
@@ -281,21 +245,19 @@ export default function BookingDetailPage() {
               <div className="flex gap-2">
                 <button
                   onClick={() => setBookingType("myself")}
-                  className={`px-4 py-2 rounded-[16px] w-1/2 ${
-                    bookingType === "myself"
+                  className={`px-4 py-2 rounded-[16px] w-1/2 ${bookingType === "myself"
                       ? "bg-[#445C7B] text-white"
                       : "bg-gray-100 text-gray-600 hover:cursor-pointer"
-                  }`}
+                    }`}
                 >
                   By Myself
                 </button>
                 <button
                   onClick={() => setBookingType("group")}
-                  className={`px-4 py-2 rounded-[16px] w-1/2 ${
-                    bookingType === "group"
+                  className={`px-4 py-2 rounded-[16px] w-1/2 ${bookingType === "group"
                       ? "bg-[#445C7B] text-white"
                       : "bg-gray-100 text-gray-600 hover:cursor-pointer"
-                  }`}
+                    }`}
                 >
                   With Group
                 </button>
@@ -306,11 +268,10 @@ export default function BookingDetailPage() {
           <button
             onClick={handleBooking}
             disabled={isBooked}
-            className={`mx-auto mt-6 w-1/3 ${
-              isBooked
+            className={`mx-auto mt-6 w-1/3 ${isBooked
                 ? "bg-gray-400 cursor-not-allowed"
                 : "bg-[#F0EBD8] hover:bg-[#E0DBC8] hover:cursor-pointer"
-            } text-black font-medium py-2 rounded-[16px] transition`}
+              } text-black font-medium py-2 rounded-[16px] transition`}
           >
             {isBooked ? "Pending..." : "Book"}
           </button>

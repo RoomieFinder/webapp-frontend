@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { jwtVerify } from "jose";
+import { jwtVerify, decodeProtectedHeader } from "jose";
 
 const SECRET = new TextEncoder().encode(process.env.JWT_SECRET || "");
 
@@ -46,12 +46,29 @@ export async function middleware(req: NextRequest) {
   } catch (err) {
     console.error("JWT verification failed:", err);
 
+    // try to decode header for debugging (non-sensitive)
+    try {
+      const header = await decodeProtectedHeader(token as string);
+      console.warn("JWT header:", header);
+    } catch (e) {
+      // ignore
+    }
+
+    // If signature verification failed, clear the cookie to force re-login
+    const isSigFail = (err as any)?.code === "ERR_JWS_SIGNATURE_VERIFICATION_FAILED" || (err as any)?.name === "JWSSignatureVerificationFailed";
+    if (isSigFail) {
+      const res = NextResponse.redirect(new URL("/", req.url));
+      try {
+        res.cookies.set("auth_token", "", { path: "/", maxAge: 0 });
+      } catch (cookieErr) {
+        console.warn("Unable to clear auth_token cookie from middleware:", cookieErr);
+      }
+      return res;
+    }
+
     // token ไม่ valid หรือ expired
     if (path.startsWith("/api")) {
-      return NextResponse.json(
-        { success: false, message: "invalid or expired token" },
-        { status: 401 }
-      );
+      return NextResponse.json({ success: false, message: "invalid or expired token" }, { status: 401 });
     }
     return NextResponse.redirect(new URL("/", req.url));
   }

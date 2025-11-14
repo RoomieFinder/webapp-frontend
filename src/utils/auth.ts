@@ -2,8 +2,9 @@ export function removeAuthToken() {
   document.cookie = "auth_token=; path=/; max-age=0";
 }
 
-// ใช้ไม่ได้ เพราะ token เป็น httpOnly
-// ต้องลบจากฝั่ง server
+// NOTE: Cannot remove httpOnly cookies from client-side. Server-side logout endpoint is required.
+// Example (server): fetch('/logout', { method: 'POST', credentials: 'include' })
+//   .then(() => window.location.href = '/login');
 
 // fetch('/logout', { method: 'POST', credentials: 'include' })
 //   .then(() => window.location.href = '/login');

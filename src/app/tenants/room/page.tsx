@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { apiServices } from "@/api";
 import { useRouter } from "next/navigation";
 import TopBar from "@/components/ui/TopBar";
 import Image from "next/image";
@@ -44,17 +45,13 @@ export default function PreferredRoomPage() {
         async function doFetch() {
             setLoading(true);
             try {
-                const url = `http://localhost:8080/group/${gid}/preferred-property/`;
-                console.log('[preferred] fetching', url);
-                const res = await fetch(url, { method: 'GET', credentials: 'include', signal });
-                const data = await res.json();
-                if (res.ok) {
-                    setItems(data.data || []);
+                const data = await apiServices.getPreferredProperties(gid || "");
+                if (data) {
+                    setItems(data || []);
                     setErrorMessage(null);
                 } else {
-                    console.error('Failed to fetch preferred:', data);
                     setItems([]);
-                    setErrorMessage(data?.message || 'Failed to fetch preferred properties');
+                    setErrorMessage('Failed to fetch preferred properties');
                 }
             } catch (err: any) {
                 if (err.name === 'AbortError') {
@@ -79,19 +76,13 @@ export default function PreferredRoomPage() {
     async function handleDelete(pid: number) {
         setDeletingId(pid);
         try {
-            const delUrl = `http://localhost:8080/group/preferred-property/${pid}`;
-            console.log('[preferred] deleting', delUrl);
-            const res = await fetch(delUrl, {
-                method: "DELETE",
-                credentials: "include",
-            });
-            const data = await res.json();
-            console.log('[preferred] delete result', res.status, data);
-            if (res.ok) setItems((s) => s.filter((p) => p.id !== pid));
-            else alert(data.message || "Failed to remove preferred property");
-            if (res.ok) {
+            const ok = await apiServices.removePreferredProperty(pid);
+            if (ok) {
+                setItems((s) => s.filter((p) => p.id !== pid));
                 setSuccessMessage("Property removed from preferred list.");
                 setShowSuccess(true);
+            } else {
+                alert("Failed to remove preferred property");
             }
         } catch (err) {
             console.error(err);

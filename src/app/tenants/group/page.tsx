@@ -3,7 +3,8 @@
 import TopBar from "@/components/ui/TopBar";
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import { apiServices } from "@/api/apiServices";
+import { apiServices } from "@/api";
+import { removeAuthToken } from "@/utils/auth";
 import Button from "@/components/ui/Button";
 import ConfirmModal from "@/components/ui/ConfirmModal";
 import SuccessModal from "@/components/ui/SuccessModal";
@@ -197,8 +198,8 @@ export default function GroupManagementPage() {
         a.userId === groupData.Leader
           ? -1
           : b.userId === groupData.Leader
-          ? 1
-          : 0
+            ? 1
+            : 0
       );
     setGroup((prev) => (prev ? { ...prev, members: sortedMembers } : null));
 
@@ -432,12 +433,12 @@ export default function GroupManagementPage() {
                         {m.isPending
                           ? "Pending"
                           : m.id === group.leaderId
-                          ? m.id === myTenantId
-                            ? "Head of group (You)"
-                            : "Head of group"
-                          : m.id === myTenantId
-                          ? "(You)"
-                          : ""}
+                            ? m.id === myTenantId
+                              ? "Head of group (You)"
+                              : "Head of group"
+                            : m.id === myTenantId
+                              ? "(You)"
+                              : ""}
                       </p>
                     </div>
                   </div>
@@ -600,43 +601,21 @@ export default function GroupManagementPage() {
                         setVisLoading(true);
                         try {
                           const gid = group.id;
-                          const res = await fetch(
-                            `http://localhost:8080/group/${gid}/visibility`,
-                            {
-                              method: "PATCH",
-                              credentials: "include",
-                              headers: { "Content-Type": "application/json" },
-                              body: JSON.stringify({
-                                visibility: optimisticVis,
-                              }),
-                            }
-                          );
-                          const text = await res.text();
-                          let data: any = null;
-                          try {
-                            data = text ? JSON.parse(text) : null;
-                          } catch (e) {
-                            /* ignore */
+                          const result = await apiServices.toggleGroupVisibility(gid, optimisticVis);
+                          if (!result?.ok) {
+                            // if toggle failed, revert optimistic state below
+                            console.warn('Toggle visibility failed', result?.error || result?.data);
                           }
-                          if (!res.ok) {
-                            const msg =
-                              (data && (data.message || data.error)) ||
-                              text ||
-                              `Request failed (${res.status})`;
-                            const normalized = (msg || "")
-                              .toString()
-                              .trim()
-                              .toLowerCase();
+                          // attempt to preserve optimistic state unless server indicates error
+                          if (!result?.ok) {
+                            const msg = result?.data?.message || result?.error || 'Request failed';
+                            const normalized = (msg || "").toString().trim().toLowerCase();
                             if (
                               normalized.includes("already set") ||
-                              normalized.includes(
-                                "already set to the requested value"
-                              ) ||
-                              normalized.includes(
-                                "already set to the requested value."
-                              )
+                              normalized.includes("already set to the requested value") ||
+                              normalized.includes("already set to the requested value.")
                             ) {
-                              // server indicates the value is already applied — keep optimistic state
+                              // server indicates value is already applied — keep optimistic state
                             } else {
                               // rollback optimistic state on other errors
                               setGroup({ ...group, is_visible: prevVis });

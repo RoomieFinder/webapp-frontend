@@ -1,7 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { getUser, getUserCookie } from "@/api/getUser";
-import { postUser } from "@/api/postUser";
+import { getUser, getUserCookie, postUser, fetchAllHobbies } from "@/api";
 
 type Hobby = {
   ID: number;
@@ -18,7 +17,7 @@ export default function EditProfile() {
   const [profilePic, setProfilePic] = useState<File | null>(null);
   const [profilePicUrl, setProfilePicUrl] = useState<string>("");
 
-      // hobbies state
+  // hobbies state
   const [allHobbies, setAllHobbies] = useState<Hobby[]>([]);
   const [selectedHobbies, setSelectedHobbies] = useState<number[]>([]);
 
@@ -52,19 +51,14 @@ export default function EditProfile() {
 
     };
 
-    const fetchAllHobbies = async () => {
+    (async () => {
       try {
-        const baseUrl = process.env.APP_ADDRESS || "http://localhost:8080";
-        const res = await fetch(`${baseUrl}/hobby`);
-        const data = await res.json();
-        if (data.success) {
-          setAllHobbies(data.data); // array of hobbies from backend
-        }
+        const data = await fetchAllHobbies();
+        if (data?.success) setAllHobbies(data.data || []);
       } catch (err) {
         console.error("Error fetching hobbies:", err);
       }
-    };
-    fetchAllHobbies();
+    })();
     fetchUserData();
 
   }, []);
@@ -218,11 +212,10 @@ export default function EditProfile() {
                     type="button"
                     key={hobby.ID}
                     onClick={() => toggleHobby(hobby.ID)}
-                    className={`px-3 py-1 rounded-full text-sm font-mono border ${
-                      selectedHobbies.includes(hobby.ID)
-                        ? "bg-[#F5F3E7] text-black border-[#F5F3E7]"
-                        : "bg-[#223355] text-white border-gray-400"
-                    }`}
+                    className={`px-3 py-1 rounded-full text-sm font-mono border ${selectedHobbies.includes(hobby.ID)
+                      ? "bg-[#F5F3E7] text-black border-[#F5F3E7]"
+                      : "bg-[#223355] text-white border-gray-400"
+                      }`}
                   >
                     {hobby.Name}
                   </button>

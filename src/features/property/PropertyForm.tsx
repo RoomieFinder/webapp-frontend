@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState, DragEvent } from "react";
+import { apiServices } from "@/api";
 
 export type FormValues = {
     placeName: string;
@@ -102,27 +103,21 @@ export function usePropertyForm(
         (async () => {
             if (next.district) {
                 try {
-                    const res = await fetch(`${apiBase}/districts?name=${encodeURIComponent(next.district)}`);
-                    if (res.ok) {
-                        const data = await res.json();
-                        const mapped = (data || []).map((d: any) => ({ ID: d.ID, NameInThai: d.NameInThai, ProvinceID: d.ProvinceID }));
-                        setDistrictOptions(mapped);
-                        const match = mapped.find((m: DistrictOpt) => m.NameInThai === next.district);
-                        if (match) {
-                            setSelectedDistrictID(match.ID);
-                            // fetch subdistricts for the district and prefill options
-                            const sdRes = await fetch(`${apiBase}/subdistricts?name=${encodeURIComponent(next.subdistrict || "")}&districtID=${match.ID}`);
-                            if (sdRes.ok) {
-                                const sdData = await sdRes.json();
-                                const sdMapped: SubdistrictOpt[] = (sdData || []).map((s: any) => ({ ID: s.ID, NameInThai: s.NameInThai, DistrictID: s.DistrictID }));
-                                setSubdistrictOptions(sdMapped);
-                                setSubdistrictHighlightIndex(sdMapped.length > 0 ? 0 : -1);
-                            }
-                        } else {
-                            // no exact district match: still try to fetch subdistricts by name
-                            if (next.subdistrict) await fetchSubdistricts(next.subdistrict);
+                    const data = await apiServices.getDistricts(next.district);
+                    const mapped = (data || []).map((d: any) => ({ ID: d.ID, NameInThai: d.NameInThai, ProvinceID: d.ProvinceID }));
+                    setDistrictOptions(mapped);
+                    const match = mapped.find((m: DistrictOpt) => m.NameInThai === next.district);
+                    if (match) {
+                        setSelectedDistrictID(match.ID);
+                        // fetch subdistricts for the district and prefill options
+                        const sdData = await apiServices.getSubdistricts(next.subdistrict || "", { districtID: match.ID });
+                        if (sdData) {
+                            const sdMapped: SubdistrictOpt[] = (sdData || []).map((s: any) => ({ ID: s.ID, NameInThai: s.NameInThai, DistrictID: s.DistrictID }));
+                            setSubdistrictOptions(sdMapped);
+                            setSubdistrictHighlightIndex(sdMapped.length > 0 ? 0 : -1);
                         }
                     } else {
+                        // no exact district match: still try to fetch subdistricts by name
                         if (next.subdistrict) await fetchSubdistricts(next.subdistrict);
                     }
                 } catch (err) {
@@ -137,13 +132,12 @@ export function usePropertyForm(
 
     async function fetchDistricts(name: string) {
         try {
-            const res = await fetch(`${apiBase}/districts?name=${encodeURIComponent(name)}`);
-            if (!res.ok) {
+            const data = await apiServices.getDistricts(name);
+            if (!data) {
                 setDistrictOptions([]);
                 setDistrictHighlightIndex(-1);
                 return;
             }
-            const data = await res.json();
             const mapped = (data || []).map((d: any) => ({ ID: d.ID, NameInThai: d.NameInThai, ProvinceID: d.ProvinceID }));
             setDistrictOptions(mapped);
             setDistrictHighlightIndex(mapped.length > 0 ? 0 : -1);
@@ -156,15 +150,15 @@ export function usePropertyForm(
 
     async function fetchSubdistricts(name: string) {
         try {
-            // include district name as an extra param when a district is selected (backend may ignore unknown params)
-            const districtParam = selectedDistrictID !== null && districtQuery.trim() !== "" ? `&district=${encodeURIComponent(districtQuery)}` : "";
-            const res = await fetch(`${apiBase}/subdistricts?name=${encodeURIComponent(name)}${districtParam}`);
-            if (!res.ok) {
+            const opts: any = {};
+            if (selectedDistrictID !== null) opts.districtID = selectedDistrictID;
+            else if (districtQuery.trim() !== "") opts.districtName = districtQuery;
+            const data = await apiServices.getSubdistricts(name, opts);
+            if (!data) {
                 setSubdistrictOptions([]);
                 setSubdistrictHighlightIndex(-1);
                 return;
             }
-            const data = await res.json();
             let mapped: SubdistrictOpt[] = (data || []).map((s: any) => ({ ID: s.ID, NameInThai: s.NameInThai, DistrictID: s.DistrictID }));
             if (selectedDistrictID !== null) mapped = mapped.filter((m: SubdistrictOpt) => m.DistrictID === selectedDistrictID);
             setSubdistrictOptions(mapped);
@@ -288,28 +282,11 @@ export function usePropertyForm(
 
         const doFetch = async () => {
             try {
-                const res = await fetch("http://localhost:8080/property", { method: "POST", credentials: "include", body: fd });
-                if (!res.ok) {
-                    let text = "";
-                    try { text = await res.text(); } catch (e) { /* ignore */ }
-                    console.error("Create failed", res.status, text);
-                    // attempt to parse JSON message if possible
-                    try {
-                        const data = JSON.parse(text || "{}");
-                        return { ok: false, message: data.error || (data.message as string) || `Create failed (${res.status})` };
-                    } catch {
-                        return { ok: false, message: `Create failed (${res.status})` };
-                    }
-                }
-                // success
-                try {
-                    const data = await res.json();
-                    return { ok: true, message: data.message || "Created" };
-                } catch {
-                    return { ok: true, message: "Created" };
-                }
+                const json = await apiServices.createProperty(fd);
+                if (!json) return { ok: false, message: "Create failed" };
+                // backend may return message or other fields
+                return { ok: true, message: json.message || "Created" };
             } catch (err) {
-                // network error
                 console.error("Network error during create:", err);
                 throw err;
             }

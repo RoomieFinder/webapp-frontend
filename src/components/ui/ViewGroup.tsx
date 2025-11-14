@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import TopBar from "@/components/ui/TopBar";
+import { apiServices } from "@/api";
 
 // Type definitions
 interface Member {
@@ -43,28 +44,7 @@ interface Group {
   visibility: boolean;
 }
 
-// API Services
-const apiServices = {
-  getGroup: async (groupId: number) => {
-    try {
-      const res = await fetch(`http://localhost:8080/group/${groupId}`, {
-        method: "GET",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-      });
-
-      const json = await res.json();
-      // console.log("Data", json.data)
-      if (json.success) return json.data;
-
-      console.error("Failed to fetch group");
-      return null;
-    } catch (err) {
-      console.error("Error fetching group:", err);
-      return null;
-    }
-  },
-};
+// uses centralized `apiServices.getGroup`
 
 // Utility function
 function formatDate(dateString: string): string {
@@ -265,8 +245,8 @@ export default function ViewGroup({ gid }: { gid: number }) {
                   <span className="mr-2">
                     {group?.preferredProperties?.length
                       ? group.preferredProperties
-                          .map((p) => p.placeName)
-                          .join(", ")
+                        .map((p) => p.placeName)
+                        .join(", ")
                       : "None"}
                   </span>
                   <Link href="/tenants/room">
