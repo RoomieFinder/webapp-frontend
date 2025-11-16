@@ -66,11 +66,7 @@ export function usePropertyForm(
     const [showSubdistrictDropdown, setShowSubdistrictDropdown] = useState(false);
     const [subdistrictHighlightIndex, setSubdistrictHighlightIndex] = useState<number>(-1);
 
-<<<<<<< Updated upstream
-    const apiBase = `${process.env.APP_ADDRESS || "http://localhost:8080"}/locations`;
-=======
-    const apiBase = "https://roomie-finder-api-316466908775.asia-southeast1.run.app/locations" || "http://localhost:8080/locations";
->>>>>>> Stashed changes
+    const apiBase = process.env.APP_ADDRESS ? `${process.env.APP_ADDRESS}/locations` : "https://roomie-finder-api-316466908775.asia-southeast1.run.app/locations";
     const districtDebounceRef = useRef<number | null>(null);
     const subdistrictDebounceRef = useRef<number | null>(null);
 
@@ -292,11 +288,7 @@ export function usePropertyForm(
 
         const doFetch = async () => {
             try {
-<<<<<<< Updated upstream
-                const res = await fetch(`${process.env.APP_ADDRESS || "http://localhost:8080"}/property`, { method: "POST", credentials: "include", body: fd });
-=======
-                const res = await fetch("https://roomie-finder-api-316466908775.asia-southeast1.run.app/property" || "http://localhost:8080/property", { method: "POST", credentials: "include", body: fd });
->>>>>>> Stashed changes
+                const res = await fetch(process.env.APP_ADDRESS ? `${process.env.APP_ADDRESS}/property` : "https://roomie-finder-api-316466908775.asia-southeast1.run.app/property", { method: "POST", credentials: "include", body: fd });
                 if (!res.ok) {
                     let text = "";
                     try { text = await res.text(); } catch (e) { /* ignore */ }

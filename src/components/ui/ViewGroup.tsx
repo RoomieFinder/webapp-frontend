@@ -54,11 +54,7 @@ interface Group {
 const apiServices = {
   getGroup: async (groupId: number) => {
     try {
-<<<<<<< Updated upstream
       const res = await fetch(`${process.env.APP_ADDRESS || "http://localhost:8080"}/group/${groupId}`, {
-=======
-      const res = await fetch(`https://roomie-finder-api-316466908775.asia-southeast1.run.app/group/${groupId}` || `http://localhost:8080/group/${groupId}`, {
->>>>>>> Stashed changes
         method: "GET",
         credentials: "include",
         headers: { "Content-Type": "application/json" },

@@ -18,11 +18,7 @@ function EditPostPageContent() {
         if (!pid) { setLoadingInitial(false); return; }
         (async () => {
             try {
-<<<<<<< Updated upstream
                 const res = await fetch(`${process.env.APP_ADDRESS || "http://localhost:8080"}/property/${pid}`, {
-=======
-                const res = await fetch(`https://roomie-finder-api-316466908775.asia-southeast1.run.app/property/${pid}` || `http://localhost:8080/property/${pid}`, {
->>>>>>> Stashed changes
                     method: "GET",
                     credentials: "include",
                     headers: { "Content-Type": "application/json" },
@@ -139,11 +135,7 @@ function EditPostPageContent() {
         }
 
         try {
-<<<<<<< Updated upstream
             const res = await fetch(`${process.env.APP_ADDRESS || "http://localhost:8080"}/property/${pid}`, {
-=======
-            const res = await fetch(`https://roomie-finder-api-316466908775.asia-southeast1.run.app/property/${pid}` || `http://localhost:8080/property/${pid}`, {
->>>>>>> Stashed changes
                 method: "PUT",
                 credentials: "include",
                 body: fd,
@@ -152,11 +144,7 @@ function EditPostPageContent() {
             if (!res.ok) return { ok: false, message: data?.Message || data?.error || "Update failed" };
             // on success, refetch the property to get updated values and update initialValues
             try {
-<<<<<<< Updated upstream
                 const refetch = await fetch(`${process.env.APP_ADDRESS || "http://localhost:8080"}/property/${pid}`, {
-=======
-                const refetch = await fetch(`https://roomie-finder-api-316466908775.asia-southeast1.run.app/property/${pid}` || `http://localhost:8080/property/${pid}`, {
->>>>>>> Stashed changes
                     method: "GET",
                     credentials: "include",
                     headers: { "Content-Type": "application/json" },
@@ -225,11 +213,7 @@ function EditPostPageContent() {
     async function handleDelete() {
         if (!pid) return;
         try {
-<<<<<<< Updated upstream
             const res = await fetch(`${process.env.APP_ADDRESS || "http://localhost:8080"}/property/${pid}`, {
-=======
-            const res = await fetch(`https://roomie-finder-api-316466908775.asia-southeast1.run.app/property/${pid}` || `http://localhost:8080/property/${pid}`, {
->>>>>>> Stashed changes
                 method: "DELETE",
                 credentials: "include",
             });

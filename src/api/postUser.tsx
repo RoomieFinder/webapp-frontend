@@ -1,4 +1,3 @@
-<<<<<<< Updated upstream
 interface UserUpdateData {
   username: string;
   email: string;
@@ -10,11 +9,7 @@ interface UserUpdateData {
 }
 
 export async function postUser(data: UserUpdateData) {
-  const baseUrl = process.env.APP_ADDRESS || "http://localhost:8080";
-=======
-export async function postUser(data: any) {
-  const baseUrl = process.env.APP_ADDRESS || "https://roomie-finder-api-316466908775.asia-southeast1.run.app" || "http://localhost:8080";
->>>>>>> Stashed changes
+  const baseUrl = process.env.APP_ADDRESS || "https://roomie-finder-api-316466908775.asia-southeast1.run.app";
   const formData = new FormData();
 
   formData.append("username", data.username);

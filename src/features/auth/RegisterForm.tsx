@@ -90,11 +90,7 @@ export default function RegisterForm({
       return;
 
     try {
-<<<<<<< Updated upstream
-      const res = await fetch(`${process.env.APP_ADDRESS || "http://localhost:8080"}/auth/register`, {
-=======
-      const res = await fetch("https://roomie-finder-api-316466908775.asia-southeast1.run.app/auth/register" || "http://localhost:8080/auth/register", {
->>>>>>> Stashed changes
+      const res = await fetch(process.env.APP_ADDRESS ? `${process.env.APP_ADDRESS}/auth/register` : "https://roomie-finder-api-316466908775.asia-southeast1.run.app/auth/register", {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },

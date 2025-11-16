@@ -53,11 +53,7 @@ export default function LoginPanel({
     if (emailErr || passwordErr) return;
 
     try {
-<<<<<<< Updated upstream
-      const res = await fetch(`${process.env.APP_ADDRESS || "http://localhost:8080"}/auth/login`, {
-=======
-      const res = await fetch("https://roomie-finder-api-316466908775.asia-southeast1.run.app/auth/login" || "http://localhost:8080/auth/login", {
->>>>>>> Stashed changes
+      const res = await fetch(process.env.APP_ADDRESS ? `${process.env.APP_ADDRESS}/auth/login` : "https://roomie-finder-api-316466908775.asia-southeast1.run.app/auth/login", {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },

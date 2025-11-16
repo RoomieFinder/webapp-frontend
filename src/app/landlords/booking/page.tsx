@@ -87,11 +87,7 @@ export default function LandlordDashboardPage() {
 
       try {
         const res = await fetch(
-<<<<<<< Updated upstream
-          `${process.env.APP_ADDRESS || "http://localhost:8080"}/group/requests/landlord/${lid}`
-=======
-          `https://roomie-finder-api-316466908775.asia-southeast1.run.app/group/requests/landlord/${lid}` || `http://localhost:8080/group/requests/landlord/${lid}`
->>>>>>> Stashed changes
+          process.env.APP_ADDRESS ? `${process.env.APP_ADDRESS}/group/requests/landlord/${lid}` : `https://roomie-finder-api-316466908775.asia-southeast1.run.app/group/requests/landlord/${lid}`
         );
         const json = await res.json();
         if (json.success) {
@@ -108,11 +104,7 @@ export default function LandlordDashboardPage() {
   useEffect(() => {
     async function fetchAllProperties() {
       try {
-<<<<<<< Updated upstream
         const res = await fetch(`${process.env.APP_ADDRESS || "http://localhost:8080"}/landlord/properties`, {
-=======
-        const res = await fetch(`https://roomie-finder-api-316466908775.asia-southeast1.run.app/landlord/properties` || `http://localhost:8080/landlord/properties`, {
->>>>>>> Stashed changes
           method: "GET",
           credentials: "include",
           headers: { "Content-Type": "application/json" },
@@ -134,11 +126,7 @@ export default function LandlordDashboardPage() {
 
   const sendResponse = async (id: number, accept: boolean) => {
     try {
-<<<<<<< Updated upstream
       const res = await fetch(`${process.env.APP_ADDRESS || "http://localhost:8080"}/landlord/response/${id}`, {
-=======
-      const res = await fetch(`https://roomie-finder-api-316466908775.asia-southeast1.run.app/landlord/response/${id}` || `http://localhost:8080/landlord/response/${id}`, {
->>>>>>> Stashed changes
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
