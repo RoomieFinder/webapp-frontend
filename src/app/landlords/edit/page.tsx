@@ -18,7 +18,7 @@ function EditPostPageContent() {
         if (!pid) { setLoadingInitial(false); return; }
         (async () => {
             try {
-                const res = await fetch(`${process.env.APP_ADDRESS || "http://localhost:8080"}/property/${pid}`, {
+                const res = await fetch(process.env.APP_ADDRESS ? `${process.env.APP_ADDRESS}/property/${pid}` : `https://roomie-finder-api-316466908775.asia-southeast1.run.app/property/${pid}`, {
                     method: "GET",
                     credentials: "include",
                     headers: { "Content-Type": "application/json" },
