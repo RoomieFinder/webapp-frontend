@@ -64,6 +64,12 @@ export default function LoginPanel({
       console.log(data);
 
       if (res.ok) {
+        // Store token in localStorage for cross-origin API calls
+        if (data.data) {
+          localStorage.setItem("auth_token", data.data);
+          // Also set a client-side cookie so middleware can access it
+          document.cookie = `auth_token=${data.data}; path=/; max-age=${24 * 60 * 60}; SameSite=Lax`;
+        }
         setMessage("Login success");
         router.push("/role");
       } else {

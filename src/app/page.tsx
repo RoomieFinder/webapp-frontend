@@ -3,7 +3,7 @@ import { useState } from "react";
 import Image from "next/image";
 import LoginForm from "@/features/auth/LoginForm";
 import RegisterForm from "@/features/auth/RegisterForm";
-import Panel from "../../components/ui/Panel";
+import Panel from "../components/ui/Panel";
 import Button from "@/components/ui/Button";
 import CookieConsent from "@/components/ui/Cookie";
 

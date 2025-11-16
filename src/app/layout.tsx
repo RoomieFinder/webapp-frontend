@@ -3,6 +3,7 @@ import { GeistSans } from 'geist/font/sans';
 import { GeistMono } from 'geist/font/mono';
 import localFont from "next/font/local";
 import "./globals.css";
+import { AuthSyncProvider } from "@/components/AuthSyncProvider";
 
 // ฟอนต์ custom
 const petitFormal = localFont({
@@ -26,7 +27,9 @@ export default function TenantLayout({
       <body
         className={`${GeistSans.variable} ${GeistMono.variable} ${petitFormal.variable} antialiased`}
       >
-        {children}
+        <AuthSyncProvider>
+          {children}
+        </AuthSyncProvider>
       </body>
     </html>
   );

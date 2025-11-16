@@ -9,7 +9,7 @@ export async function middleware(req: NextRequest) {
   const path = req.nextUrl.pathname;
 
   console.log("Middleware running for:", path);
-  // console.log("JWT_SECRET:", process.env.JWT_SECRET);
+  console.log("Token found:", !!token);
 
 
   // ถ้าไม่มี token
