@@ -44,25 +44,22 @@ export default function PreferredRoomPage() {
         async function doFetch() {
             setLoading(true);
             try {
-                const url = `http://localhost:8080/group/${gid}/preferred-property/`;
+                const url = `${process.env.APP_ADDRESS || "http://localhost:8080"}/group/${gid}/preferred-property/`;
                 console.log('[preferred] fetching', url);
                 const res = await fetch(url, { method: 'GET', credentials: 'include', signal });
                 const data = await res.json();
                 if (res.ok) {
                     setItems(data.data || []);
-                    setErrorMessage(null);
                 } else {
                     console.error('Failed to fetch preferred:', data);
                     setItems([]);
-                    setErrorMessage(data?.message || 'Failed to fetch preferred properties');
                 }
-            } catch (err: any) {
-                if (err.name === 'AbortError') {
+            } catch (err: unknown) {
+                if ((err as Error).name === 'AbortError') {
                     console.log('fetch aborted');
                 } else {
                     console.error(err);
                     setItems([]);
-                    setErrorMessage('Network error while fetching preferred properties');
                 }
             } finally {
                 setLoading(false);
@@ -79,7 +76,7 @@ export default function PreferredRoomPage() {
     async function handleDelete(pid: number) {
         setDeletingId(pid);
         try {
-            const delUrl = `http://localhost:8080/group/preferred-property/${pid}`;
+            const delUrl = `${process.env.APP_ADDRESS || "http://localhost:8080"}/group/preferred-property/${pid}`;
             console.log('[preferred] deleting', delUrl);
             const res = await fetch(delUrl, {
                 method: "DELETE",
@@ -138,7 +135,7 @@ export default function PreferredRoomPage() {
                                     <div className="w-36 h-28 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100 shadow-sm">
                                         {prop.pictures && prop.pictures.length > 0 ? (
                                             <Image
-                                                src={prop.pictures[0].startsWith("/") ? `http://localhost:8080${prop.pictures[0]}` : prop.pictures[0]}
+                                                src={prop.pictures[0].startsWith("/") ? `${process.env.APP_ADDRESS || "http://localhost:8080"}${prop.pictures[0]}` : prop.pictures[0]}
                                                 alt={prop.name}
                                                 width={160}
                                                 height={112}

@@ -5,12 +5,10 @@ import LoginForm from "@/features/auth/LoginForm";
 import RegisterForm from "@/features/auth/RegisterForm";
 import Panel from "../components/ui/Panel";
 import Button from "@/components/ui/Button";
-import { Cookie } from "lucide-react";
 import CookieConsent from "@/components/ui/Cookie";
 
 export default function HomePage() {
   const [panelOpen, setPanelOpen] = useState(false);
-  const [showLogin, setShowLogin] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
 
   return (

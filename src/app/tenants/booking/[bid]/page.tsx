@@ -1,6 +1,5 @@
 "use client";
 
-import SearchBar from "@/components/ui/SearchBar";
 import Image from "next/image";
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -27,28 +26,12 @@ export default function BookingDetailPage() {
   const router = useRouter();
   const bid = params?.bid ? parseInt(params.bid as string, 10) : null;
 
-  const [duration, setDuration] = useState("");
-  const [bookingType, setBookingType] = useState<"myself" | "group">("group");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [filterValue, setFilterValue] = useState("");
   const [property, setProperty] = useState<Property | null>(null);
   const [isPreferred, setIsPreferred] = useState<boolean>(false);
   const [isBooked, setIsBooked] = useState(false);
   const [prefLoading, setPrefLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  // Callback for search box
-  const handleSearch = (query: string) => {
-    console.log("Search:", query);
-    setSearchQuery(query);
-  };
-
-  // Callback for filter dropdown
-  const handleFilter = (filter: string) => {
-    console.log("Filter:", filter);
-    setFilterValue(filter);
-  };
 
   // Fetch property data
   useEffect(() => {
@@ -133,10 +116,10 @@ export default function BookingDetailPage() {
       const method = !prev ? "POST" : "DELETE";
       const res = await fetch(url, { method, credentials: "include" });
       const text = await res.text();
-      let data: any = null;
+      let data: { message?: string; error?: string } | null = null;
       try {
         data = text ? JSON.parse(text) : null;
-      } catch (e) {
+      } catch {
         /* ignore non-json */
       }
       if (!res.ok) {
@@ -146,10 +129,10 @@ export default function BookingDetailPage() {
           `Request failed (${res.status})`;
         throw new Error(msg);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Failed to toggle preferred", err);
       setIsPreferred(prev);
-      alert(err?.message || "Failed to update preferred list. Try again.");
+      alert((err as Error)?.message || "Failed to update preferred list. Try again.");
     } finally {
       setPrefLoading(false);
     }
@@ -281,8 +264,6 @@ export default function BookingDetailPage() {
               <div>
                 <button
                   className={`px-4 py-2 rounded-[16px] w-full bg-[#445C7B] text-white`}
-                  // keep bookingType state consistent for potential future logic
-                  onClick={() => setBookingType("group")}
                 >
                   With Group
                 </button>

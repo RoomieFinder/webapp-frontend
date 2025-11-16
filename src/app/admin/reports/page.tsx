@@ -28,7 +28,6 @@ interface User {
 
 export default function ReportsHandlingPage() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [filterValue, setFilterValue] = useState("");
   const [reports, setReports] = useState<
     (Report & { reporter?: User; reported?: User })[]
   >([]);
@@ -91,7 +90,6 @@ export default function ReportsHandlingPage() {
   }, []);
 
   const handleSearch = (query: string) => setSearchQuery(query);
-  const handleFilter = (filter: string) => setFilterValue(filter);
 
   const filteredReports = reports.filter((r) =>
     r.reported?.Username?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -127,7 +125,7 @@ export default function ReportsHandlingPage() {
 
   return (
     <div className="flex flex-col h-screen bg-[#0F1B2D] text-black">
-      <SearchBar onSearch={handleSearch} onFilter={handleFilter} />
+      <SearchBar onSearch={handleSearch} />
 
       <div className="flex flex-1 p-4 gap-4">
         {/* Left side - Reports */}

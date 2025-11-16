@@ -17,7 +17,7 @@ export default function CreateGroup() {
         setMessage("");
 
         try {
-            const url = "http://localhost:8080/group"; 
+            const url = `${process.env.APP_ADDRESS || "http://localhost:8080"}/group`; 
             const body = {
                 group_name: groupName,
                 description: description,

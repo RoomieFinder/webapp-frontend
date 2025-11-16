@@ -13,6 +13,13 @@ interface Member {
   personalPicture?: string;
 }
 
+type GroupMember = {
+  ID: number;
+  UserID: number;
+  Name?: string;
+  PersonalProfile?: { Pictures?: { Link: string }[] };
+};
+
 interface RentIn {
   id: number;
   placeName: string;
@@ -47,7 +54,7 @@ interface Group {
 const apiServices = {
   getGroup: async (groupId: number) => {
     try {
-      const res = await fetch(`http://localhost:8080/group/${groupId}`, {
+      const res = await fetch(`${process.env.APP_ADDRESS || "http://localhost:8080"}/group/${groupId}`, {
         method: "GET",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -111,7 +118,7 @@ export default function ViewGroup({ gid }: { gid: number }) {
 
       const g = groupData;
       const sortedMembers = (g.Members || [])
-        .map((m: any) => ({
+        .map((m: GroupMember) => ({
           id: m.ID,
           userId: m.UserID,
           role: m.UserID === g.Leader ? "Leader" : "Member",
@@ -140,7 +147,7 @@ export default function ViewGroup({ gid }: { gid: number }) {
           capacity: g.RentIn?.Capacity || 0,
           roomSize: g.RentIn?.RoomSize || 0,
         },
-        preferredProperties: (g.PreferredProperties || []).map((p: any) => ({
+        preferredProperties: (g.PreferredProperties || []).map((p: { ID: number; PlaceName?: string }) => ({
           id: p.ID,
           placeName: p.PlaceName || "",
         })),

@@ -66,7 +66,7 @@ export function usePropertyForm(
     const [showSubdistrictDropdown, setShowSubdistrictDropdown] = useState(false);
     const [subdistrictHighlightIndex, setSubdistrictHighlightIndex] = useState<number>(-1);
 
-    const apiBase = "http://localhost:8080/locations";
+    const apiBase = `${process.env.APP_ADDRESS || "http://localhost:8080"}/locations`;
     const districtDebounceRef = useRef<number | null>(null);
     const subdistrictDebounceRef = useRef<number | null>(null);
 
@@ -93,7 +93,7 @@ export function usePropertyForm(
 
         // set existing photos state (for edit)
         if (Array.isArray(initialValues.existingPhotos)) {
-            setExistingPhotos(initialValues.existingPhotos.map((p: any) => ({ id: p.id ?? p.ID ?? 0, url: p.url ?? p.URL ?? p.path ?? "" })));
+            setExistingPhotos(initialValues.existingPhotos.map((p: { id?: number; ID?: number; url?: string; URL?: string; path?: string }) => ({ id: p.id ?? p.ID ?? 0, url: p.url ?? p.URL ?? p.path ?? "" })));
         } else {
             setExistingPhotos([]);
         }
@@ -105,7 +105,7 @@ export function usePropertyForm(
                     const res = await fetch(`${apiBase}/districts?name=${encodeURIComponent(next.district)}`);
                     if (res.ok) {
                         const data = await res.json();
-                        const mapped = (data || []).map((d: any) => ({ ID: d.ID, NameInThai: d.NameInThai, ProvinceID: d.ProvinceID }));
+                        const mapped = (data || []).map((d: { ID: number; NameInThai: string; ProvinceID: number }) => ({ ID: d.ID, NameInThai: d.NameInThai, ProvinceID: d.ProvinceID }));
                         setDistrictOptions(mapped);
                         const match = mapped.find((m: DistrictOpt) => m.NameInThai === next.district);
                         if (match) {
@@ -114,7 +114,7 @@ export function usePropertyForm(
                             const sdRes = await fetch(`${apiBase}/subdistricts?name=${encodeURIComponent(next.subdistrict || "")}&districtID=${match.ID}`);
                             if (sdRes.ok) {
                                 const sdData = await sdRes.json();
-                                const sdMapped: SubdistrictOpt[] = (sdData || []).map((s: any) => ({ ID: s.ID, NameInThai: s.NameInThai, DistrictID: s.DistrictID }));
+                                const sdMapped: SubdistrictOpt[] = (sdData || []).map((s: { ID: number; NameInThai: string; DistrictID: number }) => ({ ID: s.ID, NameInThai: s.NameInThai, DistrictID: s.DistrictID }));
                                 setSubdistrictOptions(sdMapped);
                                 setSubdistrictHighlightIndex(sdMapped.length > 0 ? 0 : -1);
                             }
@@ -144,7 +144,7 @@ export function usePropertyForm(
                 return;
             }
             const data = await res.json();
-            const mapped = (data || []).map((d: any) => ({ ID: d.ID, NameInThai: d.NameInThai, ProvinceID: d.ProvinceID }));
+            const mapped = (data || []).map((d: { ID: number; NameInThai: string; ProvinceID: number }) => ({ ID: d.ID, NameInThai: d.NameInThai, ProvinceID: d.ProvinceID }));
             setDistrictOptions(mapped);
             setDistrictHighlightIndex(mapped.length > 0 ? 0 : -1);
         } catch (err) {
@@ -165,7 +165,7 @@ export function usePropertyForm(
                 return;
             }
             const data = await res.json();
-            let mapped: SubdistrictOpt[] = (data || []).map((s: any) => ({ ID: s.ID, NameInThai: s.NameInThai, DistrictID: s.DistrictID }));
+            let mapped: SubdistrictOpt[] = (data || []).map((s: { ID: number; NameInThai: string; DistrictID: number }) => ({ ID: s.ID, NameInThai: s.NameInThai, DistrictID: s.DistrictID }));
             if (selectedDistrictID !== null) mapped = mapped.filter((m: SubdistrictOpt) => m.DistrictID === selectedDistrictID);
             setSubdistrictOptions(mapped);
             setSubdistrictHighlightIndex(mapped.length > 0 ? 0 : -1);
@@ -248,11 +248,11 @@ export function usePropertyForm(
         const { name, value } = e.target;
         if (name === "capacity") {
             if (value === "" || parseInt(value) < 0) {
-                setFormData((prev) => ({ ...prev, [name]: "0" } as any));
+                setFormData((prev) => ({ ...prev, [name]: "0" }));
                 return;
             }
         }
-        setFormData((prev) => ({ ...prev, [name]: value } as any));
+        setFormData((prev) => ({ ...prev, [name]: value }));
     };
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -288,7 +288,7 @@ export function usePropertyForm(
 
         const doFetch = async () => {
             try {
-                const res = await fetch("http://localhost:8080/property", { method: "POST", credentials: "include", body: fd });
+                const res = await fetch(`${process.env.APP_ADDRESS || "http://localhost:8080"}/property`, { method: "POST", credentials: "include", body: fd });
                 if (!res.ok) {
                     let text = "";
                     try { text = await res.text(); } catch (e) { /* ignore */ }

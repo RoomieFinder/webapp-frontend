@@ -1,27 +1,8 @@
 import { Property } from "./property";
+import { Member } from "./member";
+import { RentIn } from "./rentIn";
 
 // Types
-export interface Member {
-  id: number;
-  userId: number;
-  role: string;
-  personalPicture?: string | null;
-  name?: string;
-}
-
-export interface RentIn {
-  id: number;
-  placeName: string;
-  caption: string;
-  type: string;
-  address: string;
-  description: string;
-  rentalFee: number;
-  capacity: number;
-  roomSize: number;
-}
-
-
 export interface Hobby {
   id: number;
   Name: string;

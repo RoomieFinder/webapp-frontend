@@ -1,4 +1,3 @@
-import { PropertyCard } from "@/components/ui/PropertyCard";
 import SearchProperty from "@/components/ui/SearchProperty";
 import TopBar from "@/components/ui/TopBar";
 

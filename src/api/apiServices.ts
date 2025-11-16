@@ -60,7 +60,7 @@ export const apiServices = {
       return null;
     }
   },
-  getPendingRequests: async (groupId: number, status?: string) => {
+  getPendingRequests: async (groupId: number) => {
     try {
       const res = await fetch(
         `${BASE_URL}/groupRequest/requests/groups/${groupId}`,
@@ -90,9 +90,6 @@ export const apiServices = {
         method: "DELETE",
         credentials: "include",
       });
-
-      const data = await res.json();
-      // console.log(data);
 
       if (!res.ok) throw new Error("Failed to leave the group");
       return true;
@@ -127,9 +124,6 @@ export const apiServices = {
           credentials: "include",
         }
       );
-
-      const data = await res.json();
-      // console.log(data);
 
       if (!res.ok) throw new Error("Failed to delete member");
       return true;
@@ -206,10 +200,7 @@ export const apiServices = {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ reportedTenantId: tenantId, reason: reason }),
       });
-      const data = await res.json();
-      // console.log(data);
-
-      if (!res) throw new Error("Failed to report user");
+      if (!res.ok) throw new Error("Failed to report user");
       return true;
     } catch (err) {
       console.error(err);

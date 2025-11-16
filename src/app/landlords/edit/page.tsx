@@ -1,29 +1,29 @@
 "use client";
 
 import TopBar from "@/components/ui/TopBar";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { usePropertyForm, PropertyFormBody, PropertyFormActions, FormValues } from "@/features/property/PropertyForm";
 
-export default function EditPostPage() {
+type PictureItem = { id?: number; ID?: number; url?: string; URL?: string; Path?: string; path?: string };
+
+function EditPostPageContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
     const pid = searchParams?.get("pid") ?? undefined;
     const [loadingInitial, setLoadingInitial] = useState(true);
     const [initialValues, setInitialValues] = useState<Partial<FormValues> | null>(null);
-    const [notFound, setNotFound] = useState(false);
 
     useEffect(() => {
         if (!pid) { setLoadingInitial(false); return; }
         (async () => {
             try {
-                const res = await fetch(`http://localhost:8080/property/${pid}`, {
+                const res = await fetch(`${process.env.APP_ADDRESS || "http://localhost:8080"}/property/${pid}`, {
                     method: "GET",
                     credentials: "include",
                     headers: { "Content-Type": "application/json" },
                 });
                 if (!res.ok) {
-                    if (res.status === 404) setNotFound(true);
                     setLoadingInitial(false);
                     return;
                 }
@@ -31,7 +31,6 @@ export default function EditPostPage() {
                 const p = json.property ?? json;
 
                 if (!p || Object.keys(p).length === 0) {
-                    setNotFound(true);
                     setLoadingInitial(false);
                     return;
                 }
@@ -42,32 +41,32 @@ export default function EditPostPage() {
                 const pictureIdsAny = p.pictureIds ?? p.PictureIds ?? p.PictureIDs ?? p.pictureIDs;
                 if (Array.isArray(p.pictures)) {
                     if (Array.isArray(pictureIdsAny) && pictureIdsAny.length === p.pictures.length) {
-                        pics = p.pictures.map((u: any, i: number) => ({ id: pictureIdsAny[i], url: typeof u === "string" ? u : (u.url ?? u.URL ?? "") }));
+                        pics = p.pictures.map((u: string | PictureItem, i: number) => ({ id: pictureIdsAny[i], url: typeof u === "string" ? u : (u.url ?? u.URL ?? "") }));
                     } else {
-                        pics = p.pictures.map((u: any) => ({ url: typeof u === "string" ? u : (u.url ?? u.URL ?? "") }));
+                        pics = p.pictures.map((u: string | PictureItem) => ({ url: typeof u === "string" ? u : (u.url ?? u.URL ?? "") }));
                     }
                 } else if (Array.isArray(p.Pictures)) {
                     const idsAny = p.PictureIds ?? p.pictureIds ?? p.PictureIDs ?? p.pictureIDs;
                     if (Array.isArray(idsAny) && idsAny.length === p.Pictures.length) {
-                        pics = p.Pictures.map((x: any, i: number) => ({ id: idsAny[i] ?? x.ID ?? x.id, url: x.URL ?? x.url ?? x.Path ?? x.path ?? "" }));
+                        pics = p.Pictures.map((x: PictureItem, i: number) => ({ id: idsAny[i] ?? x.ID ?? x.id, url: x.URL ?? x.url ?? x.Path ?? x.path ?? "" }));
                     } else {
-                        pics = p.Pictures.map((x: any) => ({ id: x.ID ?? x.id, url: x.URL ?? x.url ?? x.Path ?? x.path ?? "" }));
+                        pics = p.Pictures.map((x: PictureItem) => ({ id: x.ID ?? x.id, url: x.URL ?? x.url ?? x.Path ?? x.path ?? "" }));
                     }
                 } else if (Array.isArray(p.PicturesUrls)) {
-                    pics = p.PicturesUrls.map((u: any) => ({ url: typeof u === "string" ? u : (u.url ?? u) }));
+                    pics = p.PicturesUrls.map((u: string | PictureItem) => ({ url: typeof u === "string" ? u : (u.url ?? u) }));
                 } else if (Array.isArray(p.Images)) {
                     const idsAny = p.imageIds ?? p.ImageIds ?? p.ImageIDs ?? p.imageIDs;
                     if (Array.isArray(idsAny) && idsAny.length === p.Images.length) {
-                        pics = p.Images.map((x: any, i: number) => ({ id: idsAny[i] ?? x.ID ?? x.id, url: x.URL ?? x.url ?? x }));
+                        pics = p.Images.map((x: string | PictureItem, i: number) => ({ id: idsAny[i] ?? (typeof x === "object" ? (x.ID ?? x.id) : undefined), url: typeof x === "string" ? x : (x.URL ?? x.url ?? "") }));
                     } else {
-                        pics = p.Images.map((x: any) => ({ id: x.ID ?? x.id, url: x.URL ?? x.url ?? x }));
+                        pics = p.Images.map((x: string | PictureItem) => ({ id: typeof x === "object" ? (x.ID ?? x.id) : undefined, url: typeof x === "string" ? x : (x.URL ?? x.url ?? "") }));
                     }
                 } else if (Array.isArray(p.Photos)) {
                     const idsAny = p.photoIds ?? p.PhotoIds ?? p.PhotoIDs ?? p.photoIDs;
                     if (Array.isArray(idsAny) && idsAny.length === p.Photos.length) {
-                        pics = p.Photos.map((x: any, i: number) => ({ id: idsAny[i] ?? x.ID ?? x.id, url: x.URL ?? x.url ?? x }));
+                        pics = p.Photos.map((x: string | PictureItem, i: number) => ({ id: idsAny[i] ?? (typeof x === "string" ? undefined : (x.ID ?? x.id)), url: typeof x === "string" ? x : (x.URL ?? x.url ?? x) }));
                     } else {
-                        pics = p.Photos.map((x: any) => ({ id: x.ID ?? x.id, url: x.URL ?? x.url ?? x }));
+                        pics = p.Photos.map((x: string | PictureItem) => ({ id: typeof x === "string" ? undefined : (x.ID ?? x.id), url: typeof x === "string" ? x : (x.URL ?? x.url ?? x) }));
                     }
                 }
 
@@ -87,7 +86,6 @@ export default function EditPostPage() {
                 });
             } catch (err) {
                 console.error(err);
-                setNotFound(true);
             } finally {
                 setLoadingInitial(false);
             }
@@ -102,7 +100,7 @@ export default function EditPostPage() {
             const u = new URL(s);
             const p = u.pathname.replace(/^\//, "");
             if (p) return p;
-        } catch (e) {
+        } catch {
             // ignore and fallback to regex
         }
         const m = /r2\.dev\/([^'"\)\s,]+)/.exec(s);
@@ -137,7 +135,7 @@ export default function EditPostPage() {
         }
 
         try {
-            const res = await fetch(`http://localhost:8080/property/${pid}`, {
+            const res = await fetch(`${process.env.APP_ADDRESS || "http://localhost:8080"}/property/${pid}`, {
                 method: "PUT",
                 credentials: "include",
                 body: fd,
@@ -146,7 +144,7 @@ export default function EditPostPage() {
             if (!res.ok) return { ok: false, message: data?.Message || data?.error || "Update failed" };
             // on success, refetch the property to get updated values and update initialValues
             try {
-                const refetch = await fetch(`http://localhost:8080/property/${pid}`, {
+                const refetch = await fetch(`${process.env.APP_ADDRESS || "http://localhost:8080"}/property/${pid}`, {
                     method: "GET",
                     credentials: "include",
                     headers: { "Content-Type": "application/json" },
@@ -159,32 +157,32 @@ export default function EditPostPage() {
                     const pictureIdsAny = p.pictureIds ?? p.PictureIds ?? p.PictureIDs ?? p.pictureIDs;
                     if (Array.isArray(p.pictures)) {
                         if (Array.isArray(pictureIdsAny) && pictureIdsAny.length === p.pictures.length) {
-                            pics = p.pictures.map((u: any, i: number) => ({ id: pictureIdsAny[i], url: typeof u === "string" ? u : (u.url ?? u.URL ?? "") }));
+                            pics = p.pictures.map((u: string | PictureItem, i: number) => ({ id: pictureIdsAny[i], url: typeof u === "string" ? u : (u.url ?? u.URL ?? "") }));
                         } else {
-                            pics = p.pictures.map((u: any) => ({ url: typeof u === "string" ? u : (u.url ?? u.URL ?? "") }));
+                            pics = p.pictures.map((u: string | PictureItem) => ({ url: typeof u === "string" ? u : (u.url ?? u.URL ?? "") }));
                         }
                     } else if (Array.isArray(p.Pictures)) {
                         const idsAny = p.PictureIds ?? p.pictureIds ?? p.PictureIDs ?? p.pictureIDs;
                         if (Array.isArray(idsAny) && idsAny.length === p.Pictures.length) {
-                            pics = p.Pictures.map((x: any, i: number) => ({ id: idsAny[i] ?? x.ID ?? x.id, url: x.URL ?? x.url ?? x.Path ?? x.path ?? "" }));
+                            pics = p.Pictures.map((x: PictureItem, i: number) => ({ id: idsAny[i] ?? x.ID ?? x.id, url: x.URL ?? x.url ?? x.Path ?? x.path ?? "" }));
                         } else {
-                            pics = p.Pictures.map((x: any) => ({ id: x.ID ?? x.id, url: x.URL ?? x.url ?? x.Path ?? x.path ?? "" }));
+                            pics = p.Pictures.map((x: PictureItem) => ({ id: x.ID ?? x.id, url: x.URL ?? x.url ?? x.Path ?? x.path ?? "" }));
                         }
                     } else if (Array.isArray(p.PicturesUrls)) {
-                        pics = p.PicturesUrls.map((u: any) => ({ url: typeof u === "string" ? u : (u.url ?? u) }));
+                        pics = p.PicturesUrls.map((u: string | { url?: string }) => ({ url: typeof u === "string" ? u : (u.url ?? "") }));
                     } else if (Array.isArray(p.Images)) {
                         const idsAny = p.imageIds ?? p.ImageIds ?? p.ImageIDs ?? p.imageIDs;
                         if (Array.isArray(idsAny) && idsAny.length === p.Images.length) {
-                            pics = p.Images.map((x: any, i: number) => ({ id: idsAny[i] ?? x.ID ?? x.id, url: x.URL ?? x.url ?? x }));
+                            pics = p.Images.map((x: string | PictureItem, i: number) => ({ id: idsAny[i] ?? (typeof x === "object" ? (x.ID ?? x.id) : undefined), url: typeof x === "string" ? x : (x.URL ?? x.url ?? "") }));
                         } else {
-                            pics = p.Images.map((x: any) => ({ id: x.ID ?? x.id, url: x.URL ?? x.url ?? x }));
+                            pics = p.Images.map((x: string | PictureItem) => ({ id: typeof x === "object" ? (x.ID ?? x.id) : undefined, url: typeof x === "string" ? x : (x.URL ?? x.url ?? "") }));
                         }
                     } else if (Array.isArray(p.Photos)) {
                         const idsAny = p.photoIds ?? p.PhotoIds ?? p.PhotoIDs ?? p.photoIDs;
                         if (Array.isArray(idsAny) && idsAny.length === p.Photos.length) {
-                            pics = p.Photos.map((x: any, i: number) => ({ id: idsAny[i] ?? x.ID ?? x.id, url: x.URL ?? x.url ?? x }));
+                            pics = p.Photos.map((x: string | PictureItem, i: number) => ({ id: idsAny[i] ?? (typeof x === "object" ? (x.ID ?? x.id) : undefined), url: typeof x === "string" ? x : (x.URL ?? x.url ?? "") }));
                         } else {
-                            pics = p.Photos.map((x: any) => ({ id: x.ID ?? x.id, url: x.URL ?? x.url ?? x }));
+                            pics = p.Photos.map((x: string | PictureItem) => ({ id: typeof x === "object" ? (x.ID ?? x.id) : undefined, url: typeof x === "string" ? x : (x.URL ?? x.url ?? "") }));
                         }
                     }
 
@@ -215,7 +213,7 @@ export default function EditPostPage() {
     async function handleDelete() {
         if (!pid) return;
         try {
-            const res = await fetch(`http://localhost:8080/property/${pid}`, {
+            const res = await fetch(`${process.env.APP_ADDRESS || "http://localhost:8080"}/property/${pid}`, {
                 method: "DELETE",
                 credentials: "include",
             });
@@ -252,5 +250,13 @@ export default function EditPostPage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function EditPostPage() {
+    return (
+        <Suspense fallback={<div className="flex items-center justify-center h-screen bg-[#0F1B2D] text-white">Loading...</div>}>
+            <EditPostPageContent />
+        </Suspense>
     );
 }

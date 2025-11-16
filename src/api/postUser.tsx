@@ -1,4 +1,14 @@
-export async function postUser(data: any) {
+interface UserUpdateData {
+  username: string;
+  email: string;
+  phone: string;
+  gender: string;
+  description: string;
+  hobbies?: (number | string)[];
+  personal_picture?: File;
+}
+
+export async function postUser(data: UserUpdateData) {
   const baseUrl = process.env.APP_ADDRESS || "http://localhost:8080";
   const formData = new FormData();
 

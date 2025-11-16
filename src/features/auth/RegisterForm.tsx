@@ -1,6 +1,5 @@
 "use client";
 import { useState } from "react";
-import { useRouter } from "next/navigation"; // App Router
 import Button from "@/components/ui/Button";
 import PasswordInput from "@/components/ui/PasswordInput";
 
@@ -91,7 +90,7 @@ export default function RegisterForm({
       return;
 
     try {
-      const res = await fetch("http://localhost:8080/auth/register", {
+      const res = await fetch(`${process.env.APP_ADDRESS || "http://localhost:8080"}/auth/register`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },

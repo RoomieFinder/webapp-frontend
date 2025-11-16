@@ -13,6 +13,49 @@ import Link from "next/link";
 import GroupOptionBox from "@/components/ui/GroupOptionBox";
 import { AlertTriangle } from "lucide-react";
 import { Group } from "@/types/group";
+import { removeAuthToken } from "@/utils/auth";
+
+type PendingRequest = {
+  ID: number;
+  TenantID: number;
+  Status: string;
+  IsBanned?: boolean;
+  Tenant: {
+    User: {
+      ID: number;
+      Username?: string;
+      IsBanned?: boolean;
+    };
+    PersonalProfile: { Pictures?: { Link: string }[] };
+  };
+};
+
+type GroupMember = {
+  ID: number;
+  UserID: number;
+  Name?: string;
+  IsBanned?: boolean;
+  User: { IsBanned?: boolean };
+  PersonalProfile: { Pictures?: { Link: string }[] };
+};
+
+type SortedMember = {
+  id: number;
+  userId: number;
+  role: string;
+  name: string;
+  personalPicture?: string;
+  isBanned?: boolean;
+};
+
+type PendingMember = {
+  id: number;
+  requestId?: number;
+  userId: number;
+  name: string;
+  personalPicture?: string;
+  isPending?: boolean;
+};
 
 
 export default function GroupManagementPage() {
@@ -21,7 +64,7 @@ export default function GroupManagementPage() {
   const [loading, setLoading] = useState(true);
   const [hasGroup, setHasGroup] = useState<boolean | null>(null);
   const [group, setGroup] = useState<Group | null>(null);
-  const [pendingMembers, setPendingMembers] = useState<any[]>([]);
+  const [pendingMembers, setPendingMembers] = useState<PendingMember[]>([]);
 
   // สำหรับ dropdown ของสมาชิกแต่ละคน
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
@@ -96,8 +139,8 @@ export default function GroupManagementPage() {
 
         const sortedMembers = (g.Members || [])
           // กรองคนที่โดนแบนออกก่อน
-          .filter((m: any) => !m.User.IsBanned)
-          .map((m: any) => ({
+          .filter((m: GroupMember) => !m.User.IsBanned)
+          .map((m: GroupMember) => ({
             id: m.ID,
             userId: m.UserID,
             role: m.UserID === g.Leader ? "Leader" : "Member",
@@ -105,7 +148,7 @@ export default function GroupManagementPage() {
             personalPicture: m.PersonalProfile.Pictures?.[0]?.Link,
             isBanned: m.IsBanned,
           }))
-          .sort((a: { userId: number }, b: { userId: number }) =>
+          .sort((a: SortedMember, b: SortedMember) =>
             a.userId === g.Leader ? -1 : b.userId === g.Leader ? 1 : 0
           );
 
@@ -127,7 +170,7 @@ export default function GroupManagementPage() {
             capacity: g.RentIn?.Capacity || 0,
             roomSize: g.RentIn?.RoomSize || 0,
           },
-          preferredProperties: (g.PreferredProperties || []).map((p: any) => ({
+          preferredProperties: (g.PreferredProperties || []).map((p: { ID: number; PlaceName?: string }) => ({
             id: p.ID,
             placeName: p.PlaceName || "",
           })),
@@ -155,9 +198,9 @@ export default function GroupManagementPage() {
     try {
       const pendingRequests = await apiServices.getPendingRequests(group.id);
       const filtered = (pendingRequests || []).filter(
-        (p: any) => p.Status === "pending" && !p.Tenant.User.IsBanned
+        (p: PendingRequest) => p.Status === "pending" && !p.Tenant.User.IsBanned
       );
-      const mappedPending = filtered.map((p: any) => ({
+      const mappedPending = filtered.map((p: PendingRequest) => ({
         id: p.TenantID,
         requestId: p.ID,
         userId: p.Tenant.User.ID,
@@ -178,52 +221,6 @@ export default function GroupManagementPage() {
   useEffect(() => {
     fetchPending();
   }, [group?.id, myTenantId]);
-
-  // ฟังก์ชัน refresh ทั้งสมาชิกและ pending
-  const refreshGroupData = async () => {
-    if (!group || !myTenantId) return;
-
-    // fetch สมาชิกปกติ
-    const groupData = await apiServices.getGroup(group.id);
-    const sortedMembers = (groupData.Members || [])
-      .map((m: any) => ({
-        id: m.ID,
-        userId: m.UserID,
-        role: m.UserID === groupData.Leader ? "Leader" : "Member",
-        name: m.Name || `User ${m.UserID}`,
-        personalPicture: m.PersonalProfile.Pictures?.[0]?.Link,
-      }))
-      .sort((a: any, b: any) =>
-        a.userId === groupData.Leader
-          ? -1
-          : b.userId === groupData.Leader
-          ? 1
-          : 0
-      );
-    setGroup((prev) => (prev ? { ...prev, members: sortedMembers } : null));
-
-    // fetch pending เฉพาะ leader
-    if (myTenantId === groupData.Leader) {
-      const pendingRequests = await apiServices.getPendingRequests(group.id);
-      const filtered = (pendingRequests || []).filter(
-        (p: { Status: string }) => p.Status === "pending"
-      );
-      const mappedPending = filtered.map((p: any) => ({
-        id: p.TenantID,
-        requestId: p.ID,
-        userId: p.Tenant.User.ID,
-        role: "Pending",
-        name: p.Tenant.User.Username || `User ${p.TenantID}`,
-        personalPicture:
-          p.Tenant.PersonalProfile.Pictures?.[0]?.Link ||
-          "/default_profile.png",
-        isPending: true,
-      }));
-      setPendingMembers(mappedPending);
-    } else {
-      setPendingMembers([]);
-    }
-  };
 
   // useEffect สำหรับปิด dropdown เมื่อคลิกข้างนอก
   useEffect(() => {
@@ -336,7 +333,7 @@ export default function GroupManagementPage() {
               />
               <div>
                 <h1 className="text-white text-4xl font-bold mb-3">
-                  Seem like you don't have a group yet.
+                  Seem like you don&apos;t have a group yet.
                 </h1>
                 <p className="text-gray-300 text-xl">
                   You can find your roommates with the options below !
@@ -463,6 +460,10 @@ export default function GroupManagementPage() {
                                   <button
                                     className="w-full text-left px-2 py-1 text-green-600 hover:bg-[#90A3BC]/70 hover:text-white hover:cursor-pointer rounded-lg"
                                     onClick={async () => {
+                                      if (!m.requestId) {
+                                        alert("Request ID is missing");
+                                        return;
+                                      }
                                       console.log(
                                         "Approve request:",
                                         m.requestId
@@ -486,6 +487,10 @@ export default function GroupManagementPage() {
                                   <button
                                     className="w-full text-left px-2 py-1 text-red-600 hover:bg-[#90A3BC]/70 hover:text-white hover:cursor-pointer rounded-lg"
                                     onClick={async () => {
+                                      if (!m.requestId) {
+                                        alert("Request ID is missing");
+                                        return;
+                                      }
                                       console.log("Deny request:", m.requestId);
                                       setOpenMenuId(null);
                                       const success =
@@ -601,7 +606,7 @@ export default function GroupManagementPage() {
                         try {
                           const gid = group.id;
                           const res = await fetch(
-                            `http://localhost:8080/group/${gid}/visibility`,
+                            `${process.env.APP_ADDRESS || "http://localhost:8080"}/group/${gid}/visibility`,
                             {
                               method: "PATCH",
                               credentials: "include",
@@ -612,15 +617,15 @@ export default function GroupManagementPage() {
                             }
                           );
                           const text = await res.text();
-                          let data: any = null;
+                          let data: unknown = null;
                           try {
                             data = text ? JSON.parse(text) : null;
-                          } catch (e) {
+                          } catch {
                             /* ignore */
                           }
                           if (!res.ok) {
                             const msg =
-                              (data && (data.message || data.error)) ||
+                              (data && typeof data === 'object' && ('message' in data || 'error' in data) ? ((data as { message?: string; error?: string }).message || (data as { message?: string; error?: string }).error) : null) ||
                               text ||
                               `Request failed (${res.status})`;
                             const normalized = (msg || "")
@@ -643,9 +648,9 @@ export default function GroupManagementPage() {
                               throw new Error(msg);
                             }
                           }
-                        } catch (err: any) {
+                        } catch (err: unknown) {
                           console.error("Failed to update visibility", err);
-                          alert(err?.message || "Failed to update visibility");
+                          alert((err as Error)?.message || "Failed to update visibility");
                         } finally {
                           setVisLoading(false);
                         }

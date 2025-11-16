@@ -43,8 +43,8 @@ export default function EditProfile() {
 
         // load user selected hobbies IDs
         if (userInfo.Hobbies) {
-          setSelectedHobbies(userInfo.Hobbies.map((h: any) => h.ID));
-          console.log("User hobbies IDs:", userInfo.Hobbies.map((h: any) => h.ID)); // Debug log
+          setSelectedHobbies(userInfo.Hobbies.map((h: Hobby) => h.ID));
+          console.log("User hobbies IDs:", userInfo.Hobbies.map((h: Hobby) => h.ID)); // Debug log
         }
       } catch (error) {
         console.error("Error fetching user data:", error);
@@ -109,7 +109,7 @@ export default function EditProfile() {
         gender,
         hobbies: selectedHobbies, // ✅ pass array of IDs
         description,
-        personal_picture: profilePic,
+        personal_picture: profilePic ?? undefined,
       });
 
       if (success) {

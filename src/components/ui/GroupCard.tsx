@@ -1,5 +1,4 @@
-import { getUser } from "@/api/getUser";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Group } from "@/types/group";
 
 
@@ -7,13 +6,10 @@ export function GroupCard({ group }: { group: Group }) {
   const maxMembers = group.max_members || 10;
   const currentMembers = group.members?.length || 0;
 
-  const [profilePicUrl, setProfilePicUrl] = useState<string>("");
   const [isRequesting, setIsRequesting] = useState(false);
-  const [requestError, setRequestError] = useState<string | null>(null);
 
   const handleRequestToJoin = async () => {
     setIsRequesting(true);
-    setRequestError(null);
 
     try {
       const baseUrl = process.env.APP_ADDRESS || "http://localhost:8080";
@@ -38,7 +34,6 @@ export function GroupCard({ group }: { group: Group }) {
       alert("Request to join sent successfully!");
     } catch (error) {
       console.error("Error sending join request:", error);
-      setRequestError(error instanceof Error ? error.message : "Failed to send request");
       alert(`Failed to send join request: ${error instanceof Error ? error.message : "Please try again"}`);
     } finally {
       setIsRequesting(false);

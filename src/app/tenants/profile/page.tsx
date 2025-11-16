@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React from "react";
 import TopBar from "@/components/ui/TopBar";
 import EditProfile from "@/features/profile/EditProfile";
 

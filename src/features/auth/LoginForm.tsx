@@ -53,7 +53,7 @@ export default function LoginPanel({
     if (emailErr || passwordErr) return;
 
     try {
-      const res = await fetch("http://localhost:8080/auth/login", {
+      const res = await fetch(`${process.env.APP_ADDRESS || "http://localhost:8080"}/auth/login`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -99,7 +99,7 @@ export default function LoginPanel({
           <h2 className="text-8xl mt-12 text-gray-900">Login</h2>
 
           <p className="text-sm text-gray-600 mb-6">
-            Don't have an account?{" "}
+            Don&apos;t have an account?{" "}
             <button
               onClick={onSwitchToRegister}
               className="text-blue-600 underline cursor-pointer"

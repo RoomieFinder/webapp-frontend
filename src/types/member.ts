@@ -7,4 +7,5 @@ export interface Member {
   name?: string;
   isPending?: boolean;
   isBanned?: boolean;
+  requestId?: number;
 }

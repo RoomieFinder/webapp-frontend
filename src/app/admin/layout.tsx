@@ -1,10 +1,6 @@
 "use client";
 import React from "react";
 import MiniDrawer from "@/components/ui/Sidebar";
-import ExploreIcon from "@mui/icons-material/ExploreTwoTone";
-import ProfileIcon from "@mui/icons-material/Person2TwoTone";
-import FindRoommateIcon from "@mui/icons-material/SearchTwoTone";
-import CreatePartyIcon from "@mui/icons-material/Groups2TwoTone";
 import BuildIcon from "@mui/icons-material/Build";
 
 export default function RootLayout({

@@ -38,7 +38,7 @@ export default function ViewProfile({ id }: { id: string }) {
         setDescription(userInfo.Description || "");
 
         if (userInfo.Hobbies) {
-          setSelectedHobbies(userInfo.Hobbies.map((h: any) => h.ID));
+          setSelectedHobbies(userInfo.Hobbies.map((h: Hobby) => h.ID));
         }
       } catch (error) {
         console.error("Error fetching user data:", error);
