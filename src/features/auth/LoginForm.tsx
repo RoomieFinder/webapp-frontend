@@ -65,6 +65,7 @@ export default function LoginPanel({
 
       if (res.ok) {
         setMessage("Login success");
+        onClose();           // Close the login panel
         router.push("/role");
       } else {
         if(data.error != "invalid credentials"){
