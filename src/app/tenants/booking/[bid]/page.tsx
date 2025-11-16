@@ -44,7 +44,7 @@ export default function BookingDetailPage() {
 
       try {
         setLoading(true);
-        const baseUrl = process.env.APP_ADDRESS || "http://localhost:8080";
+        const baseUrl = process.env.APP_ADDRESS || "https://roomie-finder-api-316466908775.asia-southeast1.run.app" || "http://localhost:8080";
         const res = await fetch(`${baseUrl}/property/${bid}`, {
           method: "GET",
           credentials: "include",
@@ -80,7 +80,7 @@ export default function BookingDetailPage() {
 
     try {
       setIsBooked(true);
-      const baseUrl = process.env.APP_ADDRESS || "http://localhost:8080";
+      const baseUrl = process.env.APP_ADDRESS || "https://roomie-finder-api-316466908775.asia-southeast1.run.app" || "http://localhost:8080";
       const res = await fetch(
         `${baseUrl}/group/booking/request/${bid}`,
         {

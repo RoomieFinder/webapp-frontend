@@ -12,7 +12,7 @@ export function GroupCard({ group }: { group: Group }) {
     setIsRequesting(true);
 
     try {
-      const baseUrl = process.env.APP_ADDRESS || "http://localhost:8080";
+      const baseUrl = process.env.APP_ADDRESS || "https://roomie-finder-api-316466908775.asia-southeast1.run.app" || "http://localhost:8080";
       const response = await fetch(`${baseUrl}/groupRequest/requests/groups/${group.id}`, {
         method: "POST",
         headers: {

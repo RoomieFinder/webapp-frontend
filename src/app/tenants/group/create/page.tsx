@@ -17,7 +17,11 @@ export default function CreateGroup() {
         setMessage("");
 
         try {
+<<<<<<< Updated upstream
             const url = `${process.env.APP_ADDRESS || "http://localhost:8080"}/group`; 
+=======
+            const url = "https://roomie-finder-api-316466908775.asia-southeast1.run.app/group" || "http://localhost:8080/group"; 
+>>>>>>> Stashed changes
             const body = {
                 group_name: groupName,
                 description: description,

@@ -606,7 +606,11 @@ export default function GroupManagementPage() {
                         try {
                           const gid = group.id;
                           const res = await fetch(
+<<<<<<< Updated upstream
                             `${process.env.APP_ADDRESS || "http://localhost:8080"}/group/${gid}/visibility`,
+=======
+                            `https://roomie-finder-api-316466908775.asia-southeast1.run.app/group/${gid}/visibility` || `http://localhost:8080/group/${gid}/visibility`,
+>>>>>>> Stashed changes
                             {
                               method: "PATCH",
                               credentials: "include",
