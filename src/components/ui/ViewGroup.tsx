@@ -54,7 +54,7 @@ interface Group {
 const apiServices = {
   getGroup: async (groupId: number) => {
     try {
-      const res = await fetch(`${process.env.APP_ADDRESS || "http://localhost:8080"}/group/${groupId}`, {
+      const res = await fetch(process.env.APP_ADDRESS ? `${process.env.APP_ADDRESS}/group/${groupId}` : `https://roomie-finder-api-316466908775.asia-southeast1.run.app/group/${groupId}`, {
         method: "GET",
         credentials: "include",
         headers: { "Content-Type": "application/json" },

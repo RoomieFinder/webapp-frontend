@@ -606,10 +606,7 @@ export default function GroupManagementPage() {
                         try {
                           const gid = group.id;
                           const res = await fetch(
-                          const gid = group.id;
-                          const res = await fetch(
                             process.env.APP_ADDRESS ? `${process.env.APP_ADDRESS}/group/${gid}/visibility` : `https://roomie-finder-api-316466908775.asia-southeast1.run.app/group/${gid}/visibility`,
-                            {
                             {
                               method: "PATCH",
                               credentials: "include",

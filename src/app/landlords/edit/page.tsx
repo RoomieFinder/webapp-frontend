@@ -135,7 +135,7 @@ function EditPostPageContent() {
         }
 
         try {
-            const res = await fetch(`${process.env.APP_ADDRESS || "http://localhost:8080"}/property/${pid}`, {
+            const res = await fetch(process.env.APP_ADDRESS ? `${process.env.APP_ADDRESS}/property/${pid}` : `https://roomie-finder-api-316466908775.asia-southeast1.run.app/property/${pid}`, {
                 method: "PUT",
                 credentials: "include",
                 body: fd,
@@ -144,7 +144,7 @@ function EditPostPageContent() {
             if (!res.ok) return { ok: false, message: data?.Message || data?.error || "Update failed" };
             // on success, refetch the property to get updated values and update initialValues
             try {
-                const refetch = await fetch(`${process.env.APP_ADDRESS || "http://localhost:8080"}/property/${pid}`, {
+                const refetch = await fetch(process.env.APP_ADDRESS ? `${process.env.APP_ADDRESS}/property/${pid}` : `https://roomie-finder-api-316466908775.asia-southeast1.run.app/property/${pid}`, {
                     method: "GET",
                     credentials: "include",
                     headers: { "Content-Type": "application/json" },
@@ -213,7 +213,7 @@ function EditPostPageContent() {
     async function handleDelete() {
         if (!pid) return;
         try {
-            const res = await fetch(`${process.env.APP_ADDRESS || "http://localhost:8080"}/property/${pid}`, {
+            const res = await fetch(process.env.APP_ADDRESS ? `${process.env.APP_ADDRESS}/property/${pid}` : `https://roomie-finder-api-316466908775.asia-southeast1.run.app/property/${pid}`, {
                 method: "DELETE",
                 credentials: "include",
             });

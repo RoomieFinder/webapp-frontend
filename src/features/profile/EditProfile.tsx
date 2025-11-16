@@ -54,7 +54,7 @@ export default function EditProfile() {
 
     const fetchAllHobbies = async () => {
       try {
-        const baseUrl = process.env.APP_ADDRESS || "https://roomie-finder-api-316466908775.asia-southeast1.run.app" || "http://localhost:8080";
+        const baseUrl = process.env.APP_ADDRESS || "https://roomie-finder-api-316466908775.asia-southeast1.run.app";
         const res = await fetch(`${baseUrl}/hobby`);
         const data = await res.json();
         if (data.success) {

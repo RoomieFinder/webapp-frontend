@@ -44,10 +44,7 @@ export default function PreferredRoomPage() {
         async function doFetch() {
             setLoading(true);
             try {
-                setLoading(true);
-            try {
                 const url = process.env.APP_ADDRESS ? `${process.env.APP_ADDRESS}/group/${gid}/preferred-property/` : `https://roomie-finder-api-316466908775.asia-southeast1.run.app/group/${gid}/preferred-property/`;
-                console.log('[preferred] fetching', url);
                 console.log('[preferred] fetching', url);
                 const res = await fetch(url, { method: 'GET', credentials: 'include', signal });
                 const data = await res.json();
@@ -79,7 +76,7 @@ export default function PreferredRoomPage() {
     async function handleDelete(pid: number) {
         setDeletingId(pid);
         try {
-            const delUrl = `${process.env.APP_ADDRESS || "http://localhost:8080"}/group/preferred-property/${pid}`;
+            const delUrl = process.env.APP_ADDRESS ? `${process.env.APP_ADDRESS}/group/preferred-property/${pid}` : `https://roomie-finder-api-316466908775.asia-southeast1.run.app/group/preferred-property/${pid}`;
             console.log('[preferred] deleting', delUrl);
             const res = await fetch(delUrl, {
                 method: "DELETE",
@@ -138,7 +135,7 @@ export default function PreferredRoomPage() {
                                     <div className="w-36 h-28 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100 shadow-sm">
                                         {prop.pictures && prop.pictures.length > 0 ? (
                                             <Image
-                                                src={prop.pictures[0].startsWith("/") ? `${process.env.APP_ADDRESS || "http://localhost:8080"}${prop.pictures[0]}` : prop.pictures[0]}
+                                                src={prop.pictures[0].startsWith("/") ? `${process.env.APP_ADDRESS || "https://roomie-finder-api-316466908775.asia-southeast1.run.app"}${prop.pictures[0]}` : prop.pictures[0]}
                                                 alt={prop.name}
                                                 width={160}
                                                 height={112}

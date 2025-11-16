@@ -17,9 +17,7 @@ export default function CreateGroup() {
         setMessage("");
 
         try {
-            try {
             const url = process.env.APP_ADDRESS ? `${process.env.APP_ADDRESS}/group` : "https://roomie-finder-api-316466908775.asia-southeast1.run.app/group";
-            const body = { 
             const body = {
                 group_name: groupName,
                 description: description,

@@ -1,6 +1,6 @@
 export default async function fetchAllHobbies() {
   try {
-    const baseUrl = process.env.APP_ADDRESS || "http://localhost:8080";
+    const baseUrl = process.env.APP_ADDRESS || "https://roomie-finder-api-316466908775.asia-southeast1.run.app";
     const res = await fetch(`${baseUrl}/hobby`);
     const data = await res.json();
 

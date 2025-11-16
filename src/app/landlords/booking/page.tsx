@@ -104,7 +104,7 @@ export default function LandlordDashboardPage() {
   useEffect(() => {
     async function fetchAllProperties() {
       try {
-        const res = await fetch(`${process.env.APP_ADDRESS || "http://localhost:8080"}/landlord/properties`, {
+        const res = await fetch(process.env.APP_ADDRESS ? `${process.env.APP_ADDRESS}/landlord/properties` : `https://roomie-finder-api-316466908775.asia-southeast1.run.app/landlord/properties`, {
           method: "GET",
           credentials: "include",
           headers: { "Content-Type": "application/json" },
@@ -126,7 +126,7 @@ export default function LandlordDashboardPage() {
 
   const sendResponse = async (id: number, accept: boolean) => {
     try {
-      const res = await fetch(`${process.env.APP_ADDRESS || "http://localhost:8080"}/landlord/response/${id}`, {
+      const res = await fetch(process.env.APP_ADDRESS ? `${process.env.APP_ADDRESS}/landlord/response/${id}` : `https://roomie-finder-api-316466908775.asia-southeast1.run.app/landlord/response/${id}`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
