@@ -1,0 +1,99 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e3]:
+      - button "open drawer" [ref=e5] [cursor=pointer]:
+        - img [ref=e6]
+      - separator [ref=e8]
+      - list [ref=e9]:
+        - img "Logo" [ref=e11]
+        - listitem [ref=e12]:
+          - link "Explore" [ref=e13] [cursor=pointer]:
+            - /url: /landlords
+            - button "Explore" [ref=e14]:
+              - img [ref=e16]
+              - generic [ref=e20]: Explore
+        - listitem [ref=e21]:
+          - link "Profile" [ref=e22] [cursor=pointer]:
+            - /url: /landlords/profile
+            - button "Profile" [ref=e23]:
+              - img [ref=e25]
+              - generic [ref=e29]: Profile
+        - listitem [ref=e30]:
+          - link "Post Properties" [ref=e31] [cursor=pointer]:
+            - /url: /landlords/posting
+            - button "Post Properties" [ref=e32]:
+              - img [ref=e34]
+              - generic [ref=e37]: Post Properties
+        - listitem [ref=e38]:
+          - link "Properties Management" [ref=e39] [cursor=pointer]:
+            - /url: /landlords/booking
+            - button "Properties Management" [ref=e40]:
+              - img [ref=e42]
+              - generic [ref=e46]: Properties Management
+        - listitem [ref=e47]:
+          - link "Payment" [ref=e48] [cursor=pointer]:
+            - /url: /landlords/payment
+            - button "Payment" [ref=e49]:
+              - img [ref=e51]
+              - generic [ref=e56]: Payment
+        - separator [ref=e57]
+        - listitem [ref=e58]:
+          - button "Logout" [ref=e59] [cursor=pointer]:
+            - img [ref=e61]
+            - generic [ref=e64]: Logout
+    - main [ref=e65]:
+      - generic [ref=e67]:
+        - generic [ref=e70]:
+          - button "Back" [ref=e71] [cursor=pointer]: <
+          - generic [ref=e72]: Edit Post
+        - generic [ref=e74]:
+          - generic [ref=e75]:
+            - generic [ref=e76]: Place’s name
+            - textbox [ref=e77]: Silom City View Loft
+          - generic [ref=e78]:
+            - generic [ref=e79]: Post Captions
+            - textbox [ref=e80]: Updated by E2E test
+          - generic [ref=e81]:
+            - generic [ref=e82]: Type
+            - textbox "e.g., Apartment, Condo, Room" [ref=e83]: Apartment
+          - generic [ref=e84]:
+            - generic [ref=e85]: Photos
+            - paragraph [ref=e87] [cursor=pointer]: Drag & Drop or Click to Upload
+            - generic [ref=e88]:
+              - generic [ref=e89]:
+                - img "existing" [ref=e90]
+                - button "×" [ref=e91]
+              - generic [ref=e92]:
+                - img "existing" [ref=e93]
+                - button "×" [ref=e94]
+          - generic [ref=e95]:
+            - generic [ref=e96]:
+              - generic [ref=e97]: District
+              - textbox [ref=e98]: Bang Rak
+            - generic [ref=e99]:
+              - generic [ref=e100]: Subdistrict
+              - textbox [ref=e101]: สีลม
+          - generic [ref=e102]:
+            - generic [ref=e103]:
+              - generic [ref=e104]: Price (THB)
+              - spinbutton [ref=e105]: "22000"
+            - generic [ref=e106]:
+              - generic [ref=e107]: Room size (sqm)
+              - spinbutton [ref=e108]: "52"
+            - generic [ref=e109]:
+              - generic [ref=e110]: Capacity
+              - spinbutton [ref=e111]: "3"
+          - generic [ref=e112]:
+            - generic [ref=e113]: Description
+            - textbox [ref=e114]: Stylish loft with high ceiling and floor-to-ceiling windows. Great for work-from-home.
+          - generic [ref=e115]:
+            - button "Delete Post" [ref=e116]
+            - button "Save Changes" [ref=e117]
+            - paragraph [ref=e118]: Update failed
+  - button "Open Next.js Dev Tools" [ref=e124] [cursor=pointer]:
+    - img [ref=e125]
+  - alert [ref=e128]
+```
